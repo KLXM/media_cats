@@ -53,9 +53,9 @@ if (rex_post('save', 'boolean') && $csrfToken->isValid()) {
     } else {
         // Transaktion starten
         $db = rex_sql::factory();
-        $db->beginTransaction();
         
         try {
+            $db->beginTransaction();
             $updateErrors = false;
             
             // Kategorien aktualisieren
@@ -79,7 +79,9 @@ if (rex_post('save', 'boolean') && $csrfToken->isValid()) {
                 $db->rollbackTransaction();
             }
         } catch (Exception $e) {
-            $db->rollbackTransaction();
+            if ($db->inTransaction()) {
+                $db->rollbackTransaction();
+            }
             $errorMessage = $e->getMessage();
         }
     }
