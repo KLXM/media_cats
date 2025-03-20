@@ -125,7 +125,7 @@ if ($showConfirmation) {
     $panel .= '<p>' . rex_i18n::msg('media_cats_warning_message') . '</p>';
     $panel .= '<form action="' . rex_url::currentBackendPage() . '" method="post">';
     $panel .= '<button class="btn btn-warning" type="submit" name="confirm_action" value="1">' . rex_i18n::msg('media_cats_confirm_button') . '</button> ';
-    $panel .= '<a class="btn btn-default" href="' . rex_url::backendPage('mediapool/media') . '">' . rex_i18n::msg('media_cats_cancel_button') . '</a>';
+    $panel .= '<a class="btn btn-default" href="' . rex_url::backendPage('mediapool') . '">' . rex_i18n::msg('media_cats_cancel_button') . '</a>';
     $panel .= '</form>';
     $panel .= '</div>';
     
