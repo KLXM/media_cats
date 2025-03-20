@@ -1,6 +1,5 @@
 <?php
 
-
 // Sicherstellen, dass das data-Verzeichnis existiert
 $dataDir = rex_path::addonData('media_cats');
 if (!is_dir($dataDir)) {
