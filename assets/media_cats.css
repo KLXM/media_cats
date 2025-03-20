@@ -1,28 +1,43 @@
 /* Styles für das media_cats AddOn */
 
-/* Einrückung für untergeordnete Kategorien - wird bereits inline gesetzt */
 .rex-display-inline {
     display: inline-block;
     margin-right: 5px;
 }
 
-/* Button-Abstände */
 .btn + form {
     margin-left: 5px;
 }
 
-/* Kategorie-Tabelle */
 .table-responsive {
     overflow-x: auto;
 }
 
-/* Formular-Styling */
 .form-control:focus {
     border-color: #4b9ad9;
     box-shadow: 0 0 0 0.2rem rgba(75, 154, 217, 0.25);
 }
 
-/* Hover-Effekte für Tabellenzeilen */
 .table-hover tbody tr:hover {
     background-color: rgba(75, 154, 217, 0.1);
+}
+
+.bootstrap-select .dropdown-menu li[data-level="1"] a {
+    padding-left: 25px;
+}
+
+.bootstrap-select .dropdown-menu li[data-level="2"] a {
+    padding-left: 40px;
+}
+
+.bootstrap-select .dropdown-menu li[data-level="3"] a {
+    padding-left: 55px;
+}
+
+.bootstrap-select .dropdown-menu li[data-level="4"] a {
+    padding-left: 70px;
+}
+
+.btn-xs {
+    margin-right: 3px;
 }
