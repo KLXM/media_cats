@@ -117,26 +117,28 @@ class CategoryManager
             }
             
             // Beginne eine Transaktion
-            $this->db->beginTransaction();
+            $sql = rex_sql::factory();
             
             try {
+                $sql->beginTransaction();
+                
                 // Lösche alle bestehenden Kategorien
-                $this->db->setQuery('DELETE FROM ' . rex::getTable('media_category'));
+                $sql->setQuery('DELETE FROM ' . rex::getTable('media_category'));
                 
                 // Stelle die Kategorien wieder her
                 foreach ($backupData['categories'] as $category) {
-                    $sql = rex_sql::factory();
-                    $sql->setTable(rex::getTable('media_category'));
+                    $insertSql = rex_sql::factory();
+                    $insertSql->setTable(rex::getTable('media_category'));
                     
                     foreach ($category as $key => $value) {
-                        $sql->setValue($key, $value);
+                        $insertSql->setValue($key, $value);
                     }
                     
-                    $sql->insert();
+                    $insertSql->insert();
                 }
                 
                 // Commit der Transaktion
-                $this->db->commitTransaction();
+                $sql->commitTransaction();
                 
                 // Cache leeren
                 rex_media_cache::deleteCategories();
@@ -148,7 +150,9 @@ class CategoryManager
                 
             } catch (Exception $e) {
                 // Rollback bei Fehler
-                $this->db->rollbackTransaction();
+                if ($sql->inTransaction()) {
+                    $sql->rollbackTransaction();
+                }
                 throw $e;
             }
             
