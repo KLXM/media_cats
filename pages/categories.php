@@ -125,7 +125,7 @@ function renderCategoryAccordion(array $categories, CategoryManager $categoryMan
         $output .= '<div id="' . $collapseId . '" class="panel-collapse collapse" role="tabpanel" aria-labelledby="' . $headingId . '">';
         $output .= '<div class="panel-body">';
         
-        // Kategorie-Bearbeitungsformular
+        // Kategorie-Bearbeitungsformular - jede Kategorie hat ein eigenes Formular
         $output .= '<form action="' . rex_url::currentBackendPage() . '" method="post">';
         $output .= $csrfToken->getHiddenField();
         $output .= '<input type="hidden" name="category_id" value="' . $categoryId . '">';
