@@ -26,9 +26,6 @@ class CategoryManager
 {
     /** @var string */
     private string $backupPath;
-    
-    /** @var rex_sql */
-    private rex_sql $db;
 
     /**
      * Constructor
@@ -41,8 +38,6 @@ class CategoryManager
         if (!is_dir($this->backupPath)) {
             rex_dir::create($this->backupPath);
         }
-        
-        $this->db = rex_sql::factory();
     }
 
     /**
@@ -58,8 +53,9 @@ class CategoryManager
             $backupFile = $this->backupPath . '/' . $filename;
             
             // Medienpool-Kategorien abrufen
-            $this->db->setQuery('SELECT * FROM ' . rex::getTable('media_category'));
-            $categories = $this->db->getArray();
+            $sql = rex_sql::factory();
+            $sql->setQuery('SELECT * FROM ' . rex::getTable('media_category'));
+            $categories = $sql->getArray();
             
             // Backup-Daten als JSON speichern
             $backupData = [
@@ -116,13 +112,11 @@ class CategoryManager
                 ];
             }
             
-            // Beginne eine Transaktion
-            $sql = rex_sql::factory();
+            // Keine Transaktionen verwenden für Abwärtskompatibilität
             
             try {
-                $sql->beginTransaction();
-                
                 // Lösche alle bestehenden Kategorien
+                $sql = rex_sql::factory();
                 $sql->setQuery('DELETE FROM ' . rex::getTable('media_category'));
                 
                 // Stelle die Kategorien wieder her
@@ -137,9 +131,6 @@ class CategoryManager
                     $insertSql->insert();
                 }
                 
-                // Commit der Transaktion
-                $sql->commitTransaction();
-                
                 // Cache leeren
                 rex_media_cache::deleteCategories();
                 
@@ -149,10 +140,6 @@ class CategoryManager
                 ];
                 
             } catch (Exception $e) {
-                // Rollback bei Fehler
-                if ($sql->inTransaction()) {
-                    $sql->rollbackTransaction();
-                }
                 throw $e;
             }
             
@@ -356,44 +343,38 @@ class CategoryManager
                 ];
             }
             
-            $sql = rex_sql::factory();
-            
+            // Keine Transaktionen verwenden für Abwärtskompatibilität
             try {
-                $sql->beginTransaction();
-                
                 $oldParentId = $category->getParentId();
                 $parentId = isset($data['parent_id']) ? (int)$data['parent_id'] : $oldParentId;
                 
-                $updateSql = rex_sql::factory();
-                $updateSql->setTable(rex::getTable('media_category'));
-                $updateSql->setWhere(['id' => $categoryId]);
+                $sql = rex_sql::factory();
+                $sql->setTable(rex::getTable('media_category'));
+                $sql->setWhere(['id' => $categoryId]);
                 
                 // Name setzen
                 if (isset($data['name']) && !empty($data['name'])) {
-                    $updateSql->setValue('name', $data['name']);
+                    $sql->setValue('name', $data['name']);
                 }
                 
                 // Elternkategorie und Pfad aktualisieren
                 if (isset($data['parent_id'])) {
-                    $updateSql->setValue('parent_id', $parentId);
+                    $sql->setValue('parent_id', $parentId);
                     
                     // Pfad aktualisieren
                     if ($parentId === 0) {
-                        $updateSql->setValue('path', '|');
+                        $sql->setValue('path', '|');
                     } else {
                         $parent = rex_media_category::get($parentId);
                         if ($parent) {
                             $path = $parent->getPath() . $parent->getId() . '|';
-                            $updateSql->setValue('path', $path);
+                            $sql->setValue('path', $path);
                         }
                     }
                 }
                 
-                $updateSql->addGlobalUpdateFields();
-                $updateSql->update();
-                
-                // Alle untergeordneten Kategorien aktualisieren
-                $this->updateChildrenPaths($categoryId);
+                $sql->addGlobalUpdateFields();
+                $sql->update();
                 
                 // Cache aktualisieren
                 rex_media_cache::deleteCategory($categoryId);
@@ -404,7 +385,8 @@ class CategoryManager
                     rex_media_cache::deleteCategoryList($parentId);
                 }
                 
-                $sql->commitTransaction();
+                // Alle untergeordneten Kategorien aktualisieren
+                $this->updateChildrenPaths($categoryId);
                 
                 return [
                     'status' => true,
@@ -412,9 +394,6 @@ class CategoryManager
                 ];
                 
             } catch (Exception $e) {
-                if ($sql->inTransaction()) {
-                    $sql->rollbackTransaction();
-                }
                 throw $e;
             }
             
@@ -442,11 +421,17 @@ class CategoryManager
         $parentPath = $parent->getPath() . $parent->getId() . '|';
         
         try {
-            // Alle Kindkategorien abrufen
-            $children = $parent->getChildren();
+            // Alle Kindkategorien direkt über SQL abrufen statt über Children-Methode
+            $sql = rex_sql::factory();
+            $sql->setQuery('
+                SELECT id 
+                FROM ' . rex::getTable('media_category') . ' 
+                WHERE parent_id = :parent_id', 
+                ['parent_id' => $parentId]
+            );
             
-            foreach ($children as $child) {
-                $childId = $child->getId();
+            foreach ($sql as $row) {
+                $childId = (int)$row->getValue('id');
                 
                 // Pfad aktualisieren
                 $updateSql = rex_sql::factory();
