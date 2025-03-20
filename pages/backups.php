@@ -73,6 +73,39 @@ if (rex_post('delete', 'boolean') && $csrfToken->isValid()) {
     }
 }
 
+// Alle Backups löschen
+if (rex_post('delete_all', 'boolean') && $csrfToken->isValid()) {
+    // Sicherheitsabfrage
+    if (rex_post('confirm_delete_all', 'boolean')) {
+        $backups = $categoryManager->getBackups();
+        $deleteErrors = false;
+        
+        foreach ($backups as $backup) {
+            $result = $categoryManager->deleteBackup($backup['filename']);
+            if (!$result['status']) {
+                $deleteErrors = true;
+                $errorMessage = $result['message'];
+                break;
+            }
+        }
+        
+        if (!$deleteErrors) {
+            $successMessage = rex_i18n::msg('media_cats_delete_all_backup_success');
+        }
+    } else {
+        // Bestätigungsabfrage anzeigen
+        $warningMessage = '
+            <form action="' . rex_url::currentBackendPage() . '" method="post">
+                <input type="hidden" name="delete_all" value="1">
+                ' . $csrfToken->getHiddenField() . '
+                <p>' . rex_i18n::msg('media_cats_delete_all_confirm') . '</p>
+                <button class="btn btn-danger" type="submit" name="confirm_delete_all" value="1">' . rex_i18n::msg('media_cats_delete_all_confirm_button') . '</button>
+                <a class="btn btn-default" href="' . rex_url::currentBackendPage() . '">' . rex_i18n::msg('media_cats_cancel_button') . '</a>
+            </form>
+        ';
+    }
+}
+
 // Manuelles Backup erstellen
 if (rex_post('create_backup', 'boolean')) {
     $backupResult = $categoryManager->createBackup();
@@ -113,6 +146,12 @@ $panelBody = '';
 if (empty($backups)) {
     $panelBody .= '<p>' . rex_i18n::msg('media_cats_no_backups') . '</p>';
 } else {
+    // Button zum Löschen aller Backups
+    $panelBody .= '<form action="' . rex_url::currentBackendPage() . '" method="post" class="mb-3">';
+    $panelBody .= $csrfToken->getHiddenField();
+    $panelBody .= '<button class="btn btn-danger" type="submit" name="delete_all" value="1">' . rex_i18n::msg('media_cats_delete_all') . '</button>';
+    $panelBody .= '</form>';
+    
     $panelBody .= '<div class="table-responsive">';
     $panelBody .= '<table class="table table-hover">';
     $panelBody .= '<thead>';
