@@ -13,6 +13,10 @@ $successMessage = '';
 $errorMessage = '';
 $warningMessage = '';
 
+// Bestätigung über URL-Parameter prüfen
+$confirmed = rex_get('confirmed', 'boolean', false);
+$addon = rex_addon::get('media_cats');
+
 // Prüfen, ob Backup erstellt werden soll
 if (rex_post('create_backup', 'boolean')) {
     $backupResult = $categoryManager->createBackup();
@@ -24,22 +28,28 @@ if (rex_post('create_backup', 'boolean')) {
     }
 }
 
-// Bestätigung anzeigen, bevor Änderungen erlaubt werden
-$showConfirmation = !rex_session('media_cats_confirmed', 'boolean', false);
-
-if (rex_post('confirm_action', 'boolean')) {
-    // Bestätigung in Session speichern
-    rex_set_session('media_cats_confirmed', true);
-    $showConfirmation = false;
-    
+// Bestätigung speichern wenn bestätigt wurde
+if (rex_post('confirm_action', 'boolean') && $csrfToken->isValid()) {
     // Automatisches Backup bei Bestätigung
     $backupResult = $categoryManager->createBackup();
     
     if ($backupResult['status']) {
         $successMessage = rex_i18n::msg('media_cats_backup_success');
+        // Weiterleitung zur bestätigten URL
+        header('Location: ' . rex_url::backendPage('media_cats/categories', ['confirmed' => 1]));
+        exit;
     } else {
         $errorMessage = $backupResult['message'];
     }
+}
+
+// Bestätigung vom Addon-Config verwenden
+$showConfirmation = !$confirmed && !$addon->getConfig('confirmed', false);
+
+// Wenn über URL bestätigt, in Config speichern
+if ($confirmed && !$addon->getConfig('confirmed', false)) {
+    $addon->setConfig('confirmed', true);
+    $showConfirmation = false;
 }
 
 // Verarbeitung des Formulars
@@ -124,8 +134,10 @@ if ($showConfirmation) {
     $panel .= '<h4>' . rex_i18n::msg('media_cats_warning_title') . '</h4>';
     $panel .= '<p>' . rex_i18n::msg('media_cats_warning_message') . '</p>';
     $panel .= '<form action="' . rex_url::currentBackendPage() . '" method="post">';
-    $panel .= '<button class="btn btn-warning" type="submit" name="confirm_action" value="1">' . rex_i18n::msg('media_cats_confirm_button') . '</button> ';
-    $panel .= '<a class="btn btn-default" href="' . rex_url::backendPage('mediapool') . '">' . rex_i18n::msg('media_cats_cancel_button') . '</a>';
+    $panel .= '<input type="hidden" name="confirm_action" value="1">';
+    $panel .= $csrfToken->getHiddenField();
+    $panel .= '<button class="btn btn-warning" type="submit">' . rex_i18n::msg('media_cats_confirm_button') . '</button> ';
+    $panel .= '<a class="btn btn-default" href="' . rex_url::backendPage('media_cats') . '">' . rex_i18n::msg('media_cats_cancel_button') . '</a>';
     $panel .= '</form>';
     $panel .= '</div>';
     
