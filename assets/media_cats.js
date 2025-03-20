@@ -2,18 +2,7 @@
  * JavaScript für das media_cats AddOn
  */
 $(document).ready(function() {
-    // Panel öffnen wenn auf den Header geklickt wird
-    $('.panel-heading').on('click', function(e) {
-        var collapseId = $(this).find('a').attr('href');
-        
-        // Alle anderen Panel-Inhalte schließen
-        $('.panel-collapse').not(collapseId).removeClass('in');
-        
-        // Gewähltes Panel umschalten
-        $(collapseId).toggleClass('in');
-        
-        e.preventDefault();
-    });
+    // Wir verwenden das Standard-Bootstrap 3 Akkordeon, kein eigenes JavaScript nötig
     
     // Bestätigungsdialog vor dem Speichern
     $('form button[name="save_category"]').on('click', function(e) {
@@ -22,9 +11,12 @@ $(document).ready(function() {
         var originalName = $(this).closest('form').find('input[name="category_name"]').data('original');
         var originalParentId = $(this).closest('form').find('select[name="parent_id"]').data('original');
         
+        // Bestätigungstext
+        var confirmText = 'Möchten Sie die Änderungen an dieser Kategorie speichern? Dies kann Auswirkungen auf die Medienorganisation haben.';
+        
         // Prüfen, ob sich etwas geändert hat
         if (categoryName !== originalName || parseInt(parentId) !== parseInt(originalParentId)) {
-            if (!confirm(rex.media_cats_confirm_save)) {
+            if (!confirm(confirmText)) {
                 e.preventDefault();
                 return false;
             }
@@ -39,15 +31,4 @@ $(document).ready(function() {
     $('select[name="parent_id"]').each(function() {
         $(this).data('original', $(this).val());
     });
-    
-    // Wenn Hash in URL vorhanden, entsprechendes Panel öffnen
-    var hash = window.location.hash;
-    if (hash && hash.match(/^#collapse-\d+$/)) {
-        $(hash).addClass('in');
-        
-        // Zu dem Panel scrollen
-        $('html, body').animate({
-            scrollTop: $(hash).offset().top - 100
-        }, 500);
-    }
 });
