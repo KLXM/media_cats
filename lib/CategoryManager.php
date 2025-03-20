@@ -161,7 +161,18 @@ class CategoryManager
         $backups = [];
         
         if (is_dir($this->backupPath)) {
-            $files = rex_dir::list($this->backupPath);
+            $files = [];
+            
+            // Alle JSON-Dateien im Backup-Verzeichnis finden
+            $handle = opendir($this->backupPath);
+            if ($handle) {
+                while (($file = readdir($handle)) !== false) {
+                    if (substr($file, -5) === '.json') {
+                        $files[] = $file;
+                    }
+                }
+                closedir($handle);
+            }
             
             foreach ($files as $file) {
                 if (preg_match('/^mediacat_backup_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.json$/', $file, $matches)) {
