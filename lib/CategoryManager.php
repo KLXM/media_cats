@@ -352,39 +352,41 @@ class CategoryManager
                 ];
             }
             
-            $this->db->beginTransaction();
+            $sql = rex_sql::factory();
             
             try {
-                $sql = rex_sql::factory();
-                $sql->setTable(rex::getTable('media_category'));
-                $sql->setWhere(['id' => $categoryId]);
+                $sql->beginTransaction();
                 
                 $oldParentId = $category->getParentId();
                 $parentId = isset($data['parent_id']) ? (int)$data['parent_id'] : $oldParentId;
                 
+                $updateSql = rex_sql::factory();
+                $updateSql->setTable(rex::getTable('media_category'));
+                $updateSql->setWhere(['id' => $categoryId]);
+                
                 // Name setzen
                 if (isset($data['name']) && !empty($data['name'])) {
-                    $sql->setValue('name', $data['name']);
+                    $updateSql->setValue('name', $data['name']);
                 }
                 
                 // Elternkategorie und Pfad aktualisieren
                 if (isset($data['parent_id'])) {
-                    $sql->setValue('parent_id', $parentId);
+                    $updateSql->setValue('parent_id', $parentId);
                     
                     // Pfad aktualisieren
                     if ($parentId === 0) {
-                        $sql->setValue('path', '|');
+                        $updateSql->setValue('path', '|');
                     } else {
                         $parent = rex_media_category::get($parentId);
                         if ($parent) {
                             $path = $parent->getPath() . $parent->getId() . '|';
-                            $sql->setValue('path', $path);
+                            $updateSql->setValue('path', $path);
                         }
                     }
                 }
                 
-                $sql->addGlobalUpdateFields();
-                $sql->update();
+                $updateSql->addGlobalUpdateFields();
+                $updateSql->update();
                 
                 // Alle untergeordneten Kategorien aktualisieren
                 $this->updateChildrenPaths($categoryId);
@@ -398,7 +400,7 @@ class CategoryManager
                     rex_media_cache::deleteCategoryList($parentId);
                 }
                 
-                $this->db->commitTransaction();
+                $sql->commitTransaction();
                 
                 return [
                     'status' => true,
@@ -406,7 +408,9 @@ class CategoryManager
                 ];
                 
             } catch (Exception $e) {
-                $this->db->rollbackTransaction();
+                if ($sql->inTransaction()) {
+                    $sql->rollbackTransaction();
+                }
                 throw $e;
             }
             
