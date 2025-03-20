@@ -11,7 +11,6 @@ $categoryManager = new CategoryManager();
 // Meldungsvariablen
 $successMessage = '';
 $errorMessage = '';
-$warningMessage = '';
 
 // Prüfen, ob Backup erstellt werden soll
 if (rex_post('create_backup', 'boolean')) {
@@ -24,26 +23,8 @@ if (rex_post('create_backup', 'boolean')) {
     }
 }
 
-// Bestätigung anzeigen, bevor Änderungen erlaubt werden
-$showConfirmation = !rex_session('media_cats_confirmed', 'boolean', false);
-
-if (rex_post('confirm_action', 'boolean')) {
-    // Bestätigung in Session speichern
-    rex_set_session('media_cats_confirmed', true);
-    $showConfirmation = false;
-    
-    // Automatisches Backup bei Bestätigung
-    $backupResult = $categoryManager->createBackup();
-    
-    if ($backupResult['status']) {
-        $successMessage = rex_i18n::msg('media_cats_backup_success');
-    } else {
-        $errorMessage = $backupResult['message'];
-    }
-}
-
 // Verarbeitung des Formulars
-if (!$showConfirmation && rex_post('save', 'boolean') && $csrfToken->isValid()) {
+if (rex_post('save', 'boolean') && $csrfToken->isValid()) {
     $categoryIds = rex_post('category_id', 'array', []);
     $categoryNames = rex_post('category_name', 'array', []);
     $parentIds = rex_post('parent_id', 'array', []);
@@ -114,44 +95,24 @@ if ($successMessage) {
 if ($errorMessage) {
     echo rex_view::error($errorMessage);
 }
-if ($warningMessage) {
-    echo rex_view::warning($warningMessage);
-}
 
-// Bestätigungsdialog anzeigen
-if ($showConfirmation) {
-    $panel = '<div class="alert alert-warning">';
-    $panel .= '<h4>' . rex_i18n::msg('media_cats_warning_title') . '</h4>';
-    $panel .= '<p>' . rex_i18n::msg('media_cats_warning_message') . '</p>';
-    $panel .= '<form action="' . rex_url::currentBackendPage() . '" method="post">';
-    $panel .= '<button class="btn btn-warning" type="submit" name="confirm_action" value="1">' . rex_i18n::msg('media_cats_confirm_button') . '</button> ';
-    $panel .= '<a class="btn btn-default" href="' . rex_url::backendPage('mediapool/media') . '">' . rex_i18n::msg('media_cats_cancel_button') . '</a>';
-    $panel .= '</form>';
-    $panel .= '</div>';
-    
-    $fragment = new rex_fragment();
-    $fragment->setVar('title', rex_i18n::msg('media_cats_warning_title'), false);
-    $fragment->setVar('body', $panel, false);
-    echo $fragment->parse('core/page/section.php');
-} else {
-    // Manuelles Backup erstellen
-    $backup_form = '<form action="' . rex_url::currentBackendPage() . '" method="post">';
-    $backup_form .= '<button class="btn btn-primary" type="submit" name="create_backup" value="1">' . rex_i18n::msg('media_cats_backup_now') . '</button>';
-    $backup_form .= '</form>';
-    
-    $fragment = new rex_fragment();
-    $fragment->setVar('title', rex_i18n::msg('media_cats_backups'), false);
-    $fragment->setVar('body', $backup_form, false);
-    echo $fragment->parse('core/page/section.php');
-    
-    // Kategoriebaum anzeigen und bearbeiten
-    $categoryForm = createCategoryForm($categoryTree, $categoryManager);
-    
-    $fragment = new rex_fragment();
-    $fragment->setVar('title', rex_i18n::msg('media_cats_categories'), false);
-    $fragment->setVar('body', $categoryForm, false);
-    echo $fragment->parse('core/page/section.php');
-}
+// Manuelles Backup erstellen
+$backup_form = '<form action="' . rex_url::currentBackendPage() . '" method="post">';
+$backup_form .= '<button class="btn btn-primary" type="submit" name="create_backup" value="1">' . rex_i18n::msg('media_cats_backup_now') . '</button>';
+$backup_form .= '</form>';
+
+$fragment = new rex_fragment();
+$fragment->setVar('title', rex_i18n::msg('media_cats_backups'), false);
+$fragment->setVar('body', $backup_form, false);
+echo $fragment->parse('core/page/section.php');
+
+// Kategoriebaum anzeigen und bearbeiten
+$categoryForm = createCategoryForm($categoryTree, $categoryManager);
+
+$fragment = new rex_fragment();
+$fragment->setVar('title', rex_i18n::msg('media_cats_categories'), false);
+$fragment->setVar('body', $categoryForm, false);
+echo $fragment->parse('core/page/section.php');
 
 /**
  * Erstellt das Formular für die Kategorie-Verwaltung
