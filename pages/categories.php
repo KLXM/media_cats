@@ -23,53 +23,27 @@ if (rex_post('create_backup', 'boolean')) {
     }
 }
 
-// Verarbeitung des Formulars
-if (rex_post('save', 'boolean') && $csrfToken->isValid()) {
-    $categoryIds = rex_post('category_id', 'array', []);
-    $categoryNames = rex_post('category_name', 'array', []);
-    $parentIds = rex_post('parent_id', 'array', []);
+// Verarbeitung des Formulars für eine einzelne Kategorie
+if (rex_post('save_category', 'boolean') && $csrfToken->isValid()) {
+    $categoryId = rex_post('category_id', 'int', 0);
+    $categoryName = rex_post('category_name', 'string', '');
+    $parentId = rex_post('parent_id', 'int', 0);
     
-    $hasErrors = false;
-    $cycleError = false;
-    
-    // Überprüfe, ob alle Felder ausgefüllt sind
-    foreach ($categoryIds as $id) {
-        if (empty($categoryNames[$id])) {
-            $hasErrors = true;
-            break;
-        }
-        
-        // Prüfe auf zyklische Abhängigkeiten
-        if ($categoryManager->wouldCreateCycle($id, (int)$parentIds[$id])) {
-            $cycleError = true;
-            break;
-        }
-    }
-    
-    if ($hasErrors) {
+    if (empty($categoryName)) {
         $errorMessage = rex_i18n::msg('media_cats_no_name_error');
-    } elseif ($cycleError) {
+    } elseif ($categoryManager->wouldCreateCycle($categoryId, $parentId)) {
         $errorMessage = rex_i18n::msg('media_cats_cyclic_error');
     } else {
         try {
-            $updateErrors = false;
+            $result = $categoryManager->updateCategory($categoryId, [
+                'name' => $categoryName,
+                'parent_id' => $parentId
+            ]);
             
-            // Kategorien aktualisieren
-            foreach ($categoryIds as $id) {
-                $result = $categoryManager->updateCategory($id, [
-                    'name' => $categoryNames[$id],
-                    'parent_id' => (int)$parentIds[$id]
-                ]);
-                
-                if (!$result['status']) {
-                    $updateErrors = true;
-                    $errorMessage = $result['message'];
-                    break;
-                }
-            }
-            
-            if (!$updateErrors) {
+            if ($result['status']) {
                 $successMessage = rex_i18n::msg('media_cats_update_success');
+            } else {
+                $errorMessage = $result['message'];
             }
         } catch (Exception $e) {
             $errorMessage = $e->getMessage();
@@ -98,93 +72,93 @@ $fragment->setVar('title', rex_i18n::msg('media_cats_backups'), false);
 $fragment->setVar('body', $backup_form, false);
 echo $fragment->parse('core/page/section.php');
 
-// Kategoriebaum anzeigen und bearbeiten
-$categoryForm = createCategoryForm($categoryTree, $categoryManager);
+// Kategoriebaum als Akkordeon anzeigen
+$categoriesBody = '<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">';
+$categoriesBody .= renderCategoryAccordion($categoryTree, $categoryManager);
+$categoriesBody .= '</div>';
 
 $fragment = new rex_fragment();
 $fragment->setVar('title', rex_i18n::msg('media_cats_categories'), false);
-$fragment->setVar('body', $categoryForm, false);
+$fragment->setVar('body', $categoriesBody, false);
 echo $fragment->parse('core/page/section.php');
 
 /**
- * Erstellt das Formular für die Kategorie-Verwaltung
- *
- * @param array $categoryTree Baumstruktur der Kategorien
- * @param CategoryManager $categoryManager Instanz der Kategorie-Verwaltungsklasse
- * @return string HTML-Code des Formulars
- */
-function createCategoryForm(array $categoryTree, CategoryManager $categoryManager): string
-{
-    $csrfToken = rex_csrf_token::factory('media_cats');
-    
-    $form = '<form action="' . rex_url::currentBackendPage() . '" method="post">';
-    $form .= $csrfToken->getHiddenField();
-    
-    // Tabellenkopf
-    $form .= '<div class="table-responsive">';
-    $form .= '<table class="table table-hover">';
-    $form .= '<thead>';
-    $form .= '<tr>';
-    $form .= '<th>' . rex_i18n::msg('media_cats_categories') . '</th>';
-    $form .= '<th>' . rex_i18n::msg('media_cats_parent_category') . '</th>';
-    $form .= '</tr>';
-    $form .= '</thead>';
-    $form .= '<tbody>';
-    
-    // Kategorien rekursiv rendern
-    $form .= renderCategoryRows($categoryTree, $categoryManager);
-    
-    $form .= '</tbody>';
-    $form .= '</table>';
-    $form .= '</div>';
-    
-    // Submit-Button
-    $form .= '<button class="btn btn-save" type="submit" name="save" value="1">' . rex_i18n::msg('media_cats_save') . '</button>';
-    $form .= '</form>';
-    
-    return $form;
-}
-
-/**
- * Rendert die Kategoriezeilen rekursiv
+ * Rendert das Akkordeon für die Kategoriestruktur
  *
  * @param array $categories Kategorien
  * @param CategoryManager $categoryManager Instanz der Kategorie-Verwaltungsklasse
  * @param int $level Aktuelle Ebene für die Einrückung
- * @return string HTML-Code der Zeilen
+ * @return string HTML-Code des Akkordeons
  */
-function renderCategoryRows(array $categories, CategoryManager $categoryManager, int $level = 0): string
+function renderCategoryAccordion(array $categories, CategoryManager $categoryManager, int $level = 0): string
 {
     $output = '';
     $allCategories = $categoryManager->getCategoryTree();
+    $csrfToken = rex_csrf_token::factory('media_cats');
     
     foreach ($categories as $category) {
-        $paddingLeft = $level * 20; // Einrückung je nach Ebene
+        $categoryId = $category['id'];
+        $panelId = 'panel-' . $categoryId;
+        $headingId = 'heading-' . $categoryId;
+        $collapseId = 'collapse-' . $categoryId;
         
-        $output .= '<tr>';
+        // Einrückungsklasse basierend auf Level
+        $levelClass = 'level-' . $level;
+        $indentStyle = '';
+        if ($level > 0) {
+            $indentStyle = 'margin-left: ' . ($level * 20) . 'px;';
+        }
         
-        // Kategoriename
-        $output .= '<td style="padding-left: ' . $paddingLeft . 'px">';
-        $output .= '<input type="hidden" name="category_id[]" value="' . $category['id'] . '">';
-        $output .= '<input class="form-control" type="text" name="category_name[' . $category['id'] . ']" value="' . rex_escape($category['name']) . '">';
-        $output .= '</td>';
+        // Panel erzeugen
+        $output .= '<div class="panel panel-default ' . $levelClass . '" style="' . $indentStyle . '">';
         
-        // Elternkategorie-Dropdown
-        $output .= '<td>';
-        $output .= '<select class="form-control selectpicker" name="parent_id[' . $category['id'] . ']" data-live-search="true" data-width="100%">';
+        // Panel-Header mit Titel
+        $output .= '<div class="panel-heading" role="tab" id="' . $headingId . '">';
+        $output .= '<h4 class="panel-title">';
+        $output .= '<a role="button" data-toggle="collapse" data-parent="#accordion" href="#' . $collapseId . '" aria-expanded="false" aria-controls="' . $collapseId . '">';
+        $output .= rex_escape($category['name']);
+        $output .= '</a>';
+        $output .= '</h4>';
+        $output .= '</div>';
+        
+        // Panel-Body mit Formular
+        $output .= '<div id="' . $collapseId . '" class="panel-collapse collapse" role="tabpanel" aria-labelledby="' . $headingId . '">';
+        $output .= '<div class="panel-body">';
+        
+        // Kategorie-Bearbeitungsformular
+        $output .= '<form action="' . rex_url::currentBackendPage() . '" method="post">';
+        $output .= $csrfToken->getHiddenField();
+        $output .= '<input type="hidden" name="category_id" value="' . $categoryId . '">';
+        
+        // Formularfelder
+        $output .= '<div class="form-group">';
+        $output .= '<label for="category_name_' . $categoryId . '">' . rex_i18n::msg('media_cats_name') . ':</label>';
+        $output .= '<input class="form-control" id="category_name_' . $categoryId . '" name="category_name" type="text" value="' . rex_escape($category['name']) . '">';
+        $output .= '</div>';
+        
+        $output .= '<div class="form-group">';
+        $output .= '<label for="parent_id_' . $categoryId . '">' . rex_i18n::msg('media_cats_parent_category') . ':</label>';
+        $output .= '<select class="form-control selectpicker" id="parent_id_' . $categoryId . '" name="parent_id" data-live-search="true" data-width="100%">';
         $output .= '<option value="0">' . rex_i18n::msg('media_cats_no_parent') . '</option>';
         
-        // Alle möglichen Elternkategorien auflisten, außer sich selbst und eigene Kinder
-        $output .= renderCategoryOptions($allCategories, $category['id'], $category['parent_id']);
+        // Alle möglichen Elternkategorien auflisten
+        $output .= renderCategoryOptions($allCategories, $categoryId, $category['parent_id']);
         
         $output .= '</select>';
-        $output .= '</td>';
+        $output .= '</div>';
         
-        $output .= '</tr>';
+        // Submit-Button
+        $output .= '<button class="btn btn-save" type="submit" name="save_category" value="1">' . rex_i18n::msg('media_cats_save') . '</button>';
+        $output .= '</form>';
+        
+        $output .= '</div>'; // Ende panel-body
+        $output .= '</div>'; // Ende panel-collapse
+        
+        $output .= '</div>'; // Ende panel
         
         // Rekursive Verarbeitung der Kindkategorien
         if (!empty($category['children'])) {
-            $output .= renderCategoryRows($category['children'], $categoryManager, $level + 1);
+            $output .= renderCategoryAccordion($category['children'], $categoryManager, $level + 1);
         }
     }
     
