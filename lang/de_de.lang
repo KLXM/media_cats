@@ -1,0 +1,34 @@
+package: media_cats
+version: '1.0.0'
+author: Thomas Skerbis
+supportpage: https://github.com/skerbis/media_cats
+
+# Seiten
+page:
+    title: 'translate:media_cats_title'
+    perm: media_cats[]
+    icon: rex-icon rex-icon-media
+    subpages:
+        categories:
+            title: 'translate:media_cats_categories'
+            icon: rex-icon fa-folder
+        backups:
+            title: 'translate:media_cats_backups'
+            icon: rex-icon fa-database
+        info:
+            title: 'translate:media_cats_info'
+            icon: rex-icon fa-info
+            
+# Abhängigkeiten
+requires:
+    redaxo: '^5.18.1'
+    packages:
+        media_manager: '^2.11.0'
+    php:
+        version: '>=8.1'
+        extensions: [pdo, pdo_mysql]
+
+# Konflikte
+conflicts:
+    packages:
+        mediapool_categories: '>=0'  # Konflikt mit dem alten AddOn
