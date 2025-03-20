@@ -1,18 +1,9 @@
 /**
  * JavaScript für das media_cats AddOn
  * 
- * Bietet zusätzliche Funktionalität wie Bestätigungs-Dialoge und dynamische UI-Elemente
+ * Bietet zusätzliche Funktionalität wie Bestätigungs-Dialoge
  */
 $(document).ready(function() {
-    // Select2 für Dropdown-Felder aktivieren, wenn vorhanden
-    if (typeof $().select2 === 'function') {
-        $('select[name^="parent_id"]').select2({
-            placeholder: 'Übergeordnete Kategorie wählen',
-            allowClear: true,
-            width: '100%'
-        });
-    }
-    
     // Bestätigungsdialoge für kritische Aktionen
     $('form button[name="confirm_restore"], form button[name="confirm_delete"]').on('click', function(e) {
         if (!confirm('Sind Sie sicher, dass Sie diese Aktion ausführen möchten?')) {
@@ -44,14 +35,4 @@ $(document).ready(function() {
     $('input[name^="category_name"], select[name^="parent_id"]').each(function() {
         $(this).data('original', $(this).val());
     });
-    
-    // Helfer-Funktionen für die Benutzeroberfläche
-    function initTooltips() {
-        if (typeof $().tooltip === 'function') {
-            $('[data-toggle="tooltip"]').tooltip();
-        }
-    }
-    
-    // Tooltips initialisieren
-    initTooltips();
 });
