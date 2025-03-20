@@ -25,29 +25,44 @@ if (rex_post('create_backup', 'boolean')) {
 
 // Verarbeitung des Formulars für eine einzelne Kategorie
 if (rex_post('save_category', 'boolean') && $csrfToken->isValid()) {
+    // Stelle sicher, dass nur ein Kategorie-ID gesendet wurde
     $categoryId = rex_post('category_id', 'int', 0);
-    $categoryName = rex_post('category_name', 'string', '');
-    $parentId = rex_post('parent_id', 'int', 0);
     
-    if (empty($categoryName)) {
-        $errorMessage = rex_i18n::msg('media_cats_no_name_error');
-    } elseif ($categoryManager->wouldCreateCycle($categoryId, $parentId)) {
-        $errorMessage = rex_i18n::msg('media_cats_cyclic_error');
-    } else {
-        try {
-            $result = $categoryManager->updateCategory($categoryId, [
-                'name' => $categoryName,
-                'parent_id' => $parentId
-            ]);
-            
-            if ($result['status']) {
-                $successMessage = rex_i18n::msg('media_cats_update_success');
-            } else {
-                $errorMessage = $result['message'];
+    // Zusätzliche Sicherheitsprüfung: Stelle sicher, dass es sich um eine einzelne Kategorie-ID handelt
+    if ($categoryId > 0) {
+        $categoryName = rex_post('category_name', 'string', '');
+        $parentId = rex_post('parent_id', 'int', 0);
+        
+        if (empty($categoryName)) {
+            $errorMessage = rex_i18n::msg('media_cats_no_name_error');
+        } elseif ($categoryManager->wouldCreateCycle($categoryId, $parentId)) {
+            $errorMessage = rex_i18n::msg('media_cats_cyclic_error');
+        } else {
+            try {
+                // Automatisches Backup vor der Änderung erstellen
+                $backupResult = $categoryManager->createBackup();
+                if (!$backupResult['status']) {
+                    $warningMessage = rex_i18n::msg('media_cats_backup_error') . ' ' . 
+                                      rex_i18n::msg('media_cats_continue_anyway');
+                }
+                
+                // Kategorie aktualisieren
+                $result = $categoryManager->updateCategory($categoryId, [
+                    'name' => $categoryName,
+                    'parent_id' => $parentId
+                ]);
+                
+                if ($result['status']) {
+                    $successMessage = rex_i18n::msg('media_cats_update_success');
+                } else {
+                    $errorMessage = $result['message'];
+                }
+            } catch (Exception $e) {
+                $errorMessage = $e->getMessage();
             }
-        } catch (Exception $e) {
-            $errorMessage = $e->getMessage();
         }
+    } else {
+        $errorMessage = rex_i18n::msg('media_cats_invalid_id');
     }
 }
 
