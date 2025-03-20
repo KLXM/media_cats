@@ -1,4 +1,4 @@
-# 🐱 media_cats - Endlich Medienkategorien verschieben!
+# 🐱 KLXM media_cats - Endlich Medienkategorien verschieben in REDAXO
 
 **Das Problem kennt jeder:** Im Standard-REDAXO kannst du Medienkategorien umbenennen, aber nicht verschieben oder neu anordnen. Wir alle haben es schon erlebt: Die Struktur passt nicht mehr, aber es gibt keine Möglichkeit, die Hierarchie zu ändern, ohne die DB direkt zu bearbeiten. 😫
 
