@@ -1,7 +1,5 @@
 /**
  * JavaScript für das media_cats AddOn
- * 
- * Bietet zusätzliche Funktionalität wie Bestätigungs-Dialoge
  */
 $(document).ready(function() {
     // Bestätigungsdialoge für kritische Aktionen
