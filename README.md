@@ -1,55 +1,71 @@
 # Medienpool Kategorieverwaltung (media_cats)
 
-Mit diesem AddOn können Medienpool-Kategorien umbenannt und umsortiert werden.
+Ein REDAXO AddOn für die sichere Verwaltung von Medienpool-Kategorien. Dies ist eine verbesserte Version basierend auf dem ursprünglichen "mediapool_categories" AddOn.
 
 ## Features
 
-- Sicheres Verwalten der Medienkategorien
-- Verhinderung zyklischer Abhängigkeiten
-- Automatische Backups vor Änderungen
-- Backup-Wiederherstellung im Fehlerfall
-- Intuitive Benutzeroberfläche
+- Einzelne Bearbeitung von Kategorien zur Erhöhung der Datenintegrität
+- Übersichtliche Akkordeon-Darstellung der Kategoriehierarchie
+- Automatische Prüfung auf zyklische Abhängigkeiten
+- Integrierte Backup-Funktion vor kritischen Änderungen
+- Vollständig responsive Benutzeroberfläche
 
-## Sicherheitshinweis
+## Sicherheitsfeatures
 
-Die Verwaltung von Medienpool-Kategorien kann die Struktur der REDAXO-Website beeinflussen. Es wird dringend empfohlen, vor der Nutzung des AddOns ein vollständiges Backup der Website zu erstellen.
+Diese neue Version wurde speziell entwickelt, um Datenbank-Probleme zu vermeiden:
 
-Das AddOn erstellt automatisch Sicherungskopien der Kategorie-Tabelle, bevor Änderungen vorgenommen werden. Diese Backups können im Notfall wiederhergestellt werden.
+1. **Kategorien werden einzeln bearbeitet** - Dies verhindert komplexe Abhängigkeitsprobleme
+2. **Automatische Zyklus-Erkennung** - Das System erkennt und verhindert fehlerhafte Hierarchien
+3. **Backup-Management** - Erstellen und wiederherstellen von Backups mit einem Klick
+4. **Korrekte Pfad-Aktualisierung** - Beim Verschieben werden alle untergeordneten Kategorien korrekt aktualisiert
+5. **Validierung der Eingaben** - Alle Daten werden vor dem Speichern validiert
+
+## Installation
+
+1. Installieren Sie das AddOn über den REDAXO-Installer
+2. Aktivieren Sie das AddOn
+3. Navigieren Sie zu "Medienpool Kategorieverwaltung" im Hauptmenü
 
 ## Verwendung
 
-1. Installieren Sie das AddOn über den REDAXO-Installer.
-2. Navigieren Sie zu "Medienpool Kategorieverwaltung" im Hauptmenü.
-3. Bei der ersten Verwendung wird eine Sicherheitsabfrage angezeigt. Bestätigen Sie diese, um fortzufahren.
-4. Ein Backup wird automatisch erstellt.
-5. Nun können Sie die Kategorienamen ändern und die Hierarchie durch Anpassen der übergeordneten Kategorie modifizieren.
-6. Klicken Sie auf "Speichern", um die Änderungen zu übernehmen.
+### Kategorie bearbeiten
 
-## Backups
+1. Klicken Sie auf die gewünschte Kategorie im Akkordeon, um sie zu öffnen
+2. Ändern Sie den Namen oder die übergeordnete Kategorie
+3. Klicken Sie auf "Speichern", um die Änderungen anzuwenden
+4. Die Änderungen werden sofort in der Kategoriehierarchie sichtbar
 
-Backups werden automatisch bei der ersten Verwendung und auf Anfrage erstellt. In der Registerkarte "Backups" können Sie:
+### Hierarchien verwalten
 
-- Manuelle Backups erstellen
-- Bestehende Backups wiederherstellen
-- Nicht mehr benötigte Backups löschen
+- Die Einrückung im Akkordeon zeigt die aktuelle Hierarchieebene
+- Im Dropdown "Übergeordnete Kategorie" werden alle verfügbaren Kategorien angezeigt
+- Kategorien, die zu Zyklusproblemen führen würden, werden automatisch ausgeblendet
+- Die Änderung einer übergeordneten Kategorie wirkt sich auf alle untergeordneten Kategorien aus
 
-## Technische Details
+### Backups
 
-Das AddOn verwendet moderne PHP 8.1+ Features und einen sicheren Ansatz zur Datenbankmanipulation:
+- Erstellen Sie vor wichtigen Änderungen ein Backup der Kategoriestruktur
+- Alle Backups werden mit Datum und Uhrzeit gespeichert
+- Backups können wiederhergestellt oder gelöscht werden
+- Bei Problemen können Sie jederzeit zu einem funktionierenden Zustand zurückkehren
 
-- SQL-Transaktionen für sichere Aktualisierungen
-- Erkennung und Verhinderung zyklischer Abhängigkeiten
-- Vollständige Aktualisierung aller abhängigen Pfade
-- Validierung aller Eingaben
+## Systemvoraussetzungen
 
-## Fehlerbehandlung
+- REDAXO ab Version 5.18.1
+- PHP 8.1 oder höher
+- Media Manager AddOn muss installiert sein
 
-Sollten Fehler auftreten, können Sie:
+## Hinweise für Entwickler
 
-1. Auf die Registerkarte "Backups" wechseln
-2. Ein vorheriges Backup wiederherstellen
-3. Den Cache im System löschen
+Das AddOn nutzt moderne PHP-Techniken und folgt Best Practices für REDAXO-AddOns:
+
+- Strikte Typisierung mit PHP 8.1 Features
+- Namespaces für bessere Code-Organisation
+- Konsistente Fehlerbehandlung
+- Bootstrap 3 kompatibles Frontend
+- Responsives Design
 
 ## Autor
 
-Thomas Skerbis
+Thomas Skerbis  
+[KLXM Crossmedia GmbH](https://klxm.de)
