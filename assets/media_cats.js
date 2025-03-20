@@ -3,18 +3,22 @@
  */
 $(document).ready(function() {
     // Bootstrap-Kollapse-Events behandeln
-    $('.panel-collapse').on('show.bs.collapse', function () {
+    $('.panel-collapse').on('shown.bs.collapse', function () {
         // Formularelemente beim Öffnen aktivieren
         $(this).find('input, select, textarea, button').prop('disabled', false);
+        
+        // Selectpicker aktualisieren, falls vorhanden
+        $(this).find('.selectpicker').selectpicker('refresh');
     });
     
-    $('.panel-collapse').on('hide.bs.collapse', function () {
-        // Formularelemente beim Schließen deaktivieren
-        $(this).find('input, select, textarea, button').prop('disabled', true);
+    // Nur bei Formularen, die abgesendet werden, prüfen
+    $('form').on('submit', function() {
+        // Nur die Form im aktiven Panel darf abgesendet werden
+        if (!$(this).closest('.panel-collapse').hasClass('in')) {
+            return false; // Absenden verhindern, falls Panel geschlossen
+        }
+        return true;
     });
-    
-    // Initial alle Formularelemente in geschlossenen Panels deaktivieren
-    $('.panel-collapse:not(.in)').find('input, select, textarea, button').prop('disabled', true);
     
     // Bestätigungsdialog vor dem Speichern
     $('form button[name="save_category"]').on('click', function(e) {
@@ -42,18 +46,5 @@ $(document).ready(function() {
     
     $('select[name="parent_id"]').each(function() {
         $(this).data('original', $(this).val());
-    });
-    
-    // Zusätzlich: Bei Formularabsendung alle nicht sichtbaren Formulare deaktivieren
-    $('form').on('submit', function() {
-        // Sicherstellen, dass nur Formulare in geöffneten Panels gesendet werden
-        if (!$(this).closest('.panel-collapse').hasClass('in')) {
-            return false; // Absenden verhindern, falls Panel geschlossen
-        }
-        
-        // Für mehr Sicherheit: auch hier alle Elemente in geschlossenen Panels deaktivieren
-        $('.panel-collapse:not(.in)').find('input, select, textarea, button').prop('disabled', true);
-        
-        return true;
     });
 });
