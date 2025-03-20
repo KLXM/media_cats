@@ -6,9 +6,6 @@ if (rex::isBackend() && rex::getUser()) {
         // CSS einbinden
         rex_view::addCssFile(rex_url::addonAssets('media_cats', 'media_cats.css'));
         
-        // JavaScript-Übersetzungen hinzufügen
-        rex_view::addJsVar('media_cats_confirm_save', rex_i18n::msg('media_cats_confirm_save'));
-        
         // JavaScript einbinden
         rex_view::addJsFile(rex_url::addonAssets('media_cats', 'media_cats.js'));
     }
