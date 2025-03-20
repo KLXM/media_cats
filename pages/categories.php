@@ -51,11 +51,7 @@ if (rex_post('save', 'boolean') && $csrfToken->isValid()) {
     } elseif ($cycleError) {
         $errorMessage = rex_i18n::msg('media_cats_cyclic_error');
     } else {
-        // Transaktion starten
-        $db = rex_sql::factory();
-        
         try {
-            $db->beginTransaction();
             $updateErrors = false;
             
             // Kategorien aktualisieren
@@ -73,15 +69,9 @@ if (rex_post('save', 'boolean') && $csrfToken->isValid()) {
             }
             
             if (!$updateErrors) {
-                $db->commitTransaction();
                 $successMessage = rex_i18n::msg('media_cats_update_success');
-            } else {
-                $db->rollbackTransaction();
             }
         } catch (Exception $e) {
-            if ($db->inTransaction()) {
-                $db->rollbackTransaction();
-            }
             $errorMessage = $e->getMessage();
         }
     }
