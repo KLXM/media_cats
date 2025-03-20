@@ -1,34 +1,33 @@
-package: media_cats
-version: '1.0.0'
-author: Thomas Skerbis
-supportpage: https://github.com/skerbis/media_cats
+# addon:media_cats de_de
 
-# Seiten
-page:
-    title: 'translate:media_cats_title'
-    perm: media_cats[]
-    icon: rex-icon rex-icon-media
-    subpages:
-        categories:
-            title: 'translate:media_cats_categories'
-            icon: rex-icon fa-folder
-        backups:
-            title: 'translate:media_cats_backups'
-            icon: rex-icon fa-database
-        info:
-            title: 'translate:media_cats_info'
-            icon: rex-icon fa-info
-            
-# Abhängigkeiten
-requires:
-    redaxo: '^5.18.1'
-    packages:
-        media_manager: '^2.11.0'
-    php:
-        version: '>=8.1'
-        extensions: [pdo, pdo_mysql]
+media_cats_title = Medienpool Kategorieverwaltung
+media_cats_categories = Kategorien verwalten
+media_cats_backups = Backups
+media_cats_info = Info
 
-# Konflikte
-conflicts:
-    packages:
-        mediapool_categories: '>=0'  # Konflikt mit dem alten AddOn
+media_cats_warning_title = Achtung: Sicherheitshinweis
+media_cats_warning_message = Die Bearbeitung von Medienkategorien kann weitreichende Auswirkungen haben. <br>Bei unsachgemäßer Verwendung kann die Datenbank beschädigt werden. <br>Es wird ein Backup erstellt, bevor Änderungen vorgenommen werden können.
+media_cats_backup_success = Backup wurde erfolgreich erstellt
+media_cats_backup_error = Fehler beim Erstellen des Backups
+media_cats_confirm_button = Ich habe verstanden und möchte fortfahren
+media_cats_cancel_button = Abbrechen
+media_cats_no_name_error = Bitte geben Sie für alle Kategorien einen Namen ein
+media_cats_cyclic_error = Fehler: Es würde eine zyklische Abhängigkeit entstehen
+media_cats_update_success = Kategorien wurden erfolgreich aktualisiert
+media_cats_update_error = Fehler beim Aktualisieren der Kategorien
+media_cats_restore_success = Backup wurde erfolgreich wiederhergestellt
+media_cats_restore_error = Fehler beim Wiederherstellen des Backups
+media_cats_delete_backup_success = Backup wurde erfolgreich gelöscht
+media_cats_delete_backup_error = Fehler beim Löschen des Backups
+media_cats_no_backups = Keine Backups vorhanden
+media_cats_create_date = Erstellungsdatum
+media_cats_restore = Wiederherstellen
+media_cats_delete = Löschen
+media_cats_backup_now = Backup jetzt erstellen
+media_cats_parent_category = Übergeordnete Kategorie
+media_cats_no_parent = Keine übergeordnete Kategorie
+media_cats_save = Speichern
+media_cats_restore_confirm = Sind Sie sicher, dass Sie das Backup "%s" wiederherstellen möchten? Alle aktuellen Medienkategorien werden überschrieben!
+media_cats_restore_confirm_button = Ja, wiederherstellen
+media_cats_delete_confirm = Sind Sie sicher, dass Sie das Backup "%s" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden!
+media_cats_delete_confirm_button = Ja, löschen
