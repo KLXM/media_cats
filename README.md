@@ -1,71 +1,39 @@
-# Medienpool Kategorieverwaltung (media_cats)
+# 🐱 media_cats - Endlich Medienkategorien verschieben!
 
-Ein REDAXO AddOn für die sichere Verwaltung von Medienpool-Kategorien. Dies ist eine verbesserte Version basierend auf dem ursprünglichen "mediapool_categories" AddOn.
+**Das Problem kennt jeder:** Im Standard-REDAXO kannst du Medienkategorien umbenennen, aber nicht verschieben oder neu anordnen. Wir alle haben es schon erlebt: Die Struktur passt nicht mehr, aber es gibt keine Möglichkeit, die Hierarchie zu ändern, ohne die DB direkt zu bearbeiten. 😫
 
-## Features
+**media_cats** füllt diese Lücke und ermöglicht endlich das Verschieben von Medienkategorien - und zwar sicher!
 
-- Einzelne Bearbeitung von Kategorien zur Erhöhung der Datenintegrität
-- Übersichtliche Akkordeon-Darstellung der Kategoriehierarchie
-- Automatische Prüfung auf zyklische Abhängigkeiten
-- Integrierte Backup-Funktion vor kritischen Änderungen
-- Vollständig responsive Benutzeroberfläche
+## Was kann media_cats?
 
-## Sicherheitsfeatures
+- **Kategorien verschieben**: Ordne deine Medienkategorien neu an, indem du übergeordnete Kategorien änderst
+- **Kategorienamen ändern**: Klar, das ging schon vorher - aber jetzt mit Backup!
+- **Sicher dank Einzelbearbeitung**: Änderungen nur an einer Kategorie gleichzeitig - verhindert Chaos
+- **Automatische Zyklus-Erkennung**: Keine kaputten Strukturen durch zirkuläre Abhängigkeiten
+- **Integriertes Backup-System**: Automatische Backups vor jeder Änderung und Wiederherstellungsmöglichkeit
 
-Diese neue Version wurde speziell entwickelt, um Datenbank-Probleme zu vermeiden:
+## Warum ist das wichtig?
 
-1. **Kategorien werden einzeln bearbeitet** - Dies verhindert komplexe Abhängigkeitsprobleme
-2. **Automatische Zyklus-Erkennung** - Das System erkennt und verhindert fehlerhafte Hierarchien
-3. **Backup-Management** - Erstellen und wiederherstellen von Backups mit einem Klick
-4. **Korrekte Pfad-Aktualisierung** - Beim Verschieben werden alle untergeordneten Kategorien korrekt aktualisiert
-5. **Validierung der Eingaben** - Alle Daten werden vor dem Speichern validiert
+Vielleicht denkst du: "Die Medienkategorien einfach neu anzulegen wäre doch einfacher!" Aber alle, die schon mal hunderte Medien neu kategorisieren mussten, wissen: Das ist ein Alptraum. Mit media_cats kannst du die Struktur anpassen, ohne Medien verschieben zu müssen.
 
-## Installation
+## Benutzung
 
-1. Installieren Sie das AddOn über den REDAXO-Installer
-2. Aktivieren Sie das AddOn
-3. Navigieren Sie zu "Medienpool Kategorieverwaltung" im Hauptmenü
+1. "Medienpool Kategorieverwaltung" im Hauptmenü öffnen
+2. Klicke auf eine Kategorie im Akkordeon, um sie zu bearbeiten
+3. Wähle eine neue übergeordnete Kategorie aus dem Dropdown
+4. Speichern und fertig!
 
-## Verwendung
+## Für Nerds: Die Technik dahinter
 
-### Kategorie bearbeiten
+- Sichere Verarbeitung der Pfade und Abhängigkeiten
+- Automatische Aktualisierung aller Unterkategorien beim Verschieben
+- Komplette Validierung aller Änderungen vor der Durchführung
+- Kompatibel mit PHP 8.1+ und REDAXO 5.18.1+
+- Sauberes Namespacing mit \KLXM\MediaCats
 
-1. Klicken Sie auf die gewünschte Kategorie im Akkordeon, um sie zu öffnen
-2. Ändern Sie den Namen oder die übergeordnete Kategorie
-3. Klicken Sie auf "Speichern", um die Änderungen anzuwenden
-4. Die Änderungen werden sofort in der Kategoriehierarchie sichtbar
 
-### Hierarchien verwalten
+## Credits
 
-- Die Einrückung im Akkordeon zeigt die aktuelle Hierarchieebene
-- Im Dropdown "Übergeordnete Kategorie" werden alle verfügbaren Kategorien angezeigt
-- Kategorien, die zu Zyklusproblemen führen würden, werden automatisch ausgeblendet
-- Die Änderung einer übergeordneten Kategorie wirkt sich auf alle untergeordneten Kategorien aus
+Entwickelt von Thomas Skerbis
 
-### Backups
-
-- Erstellen Sie vor wichtigen Änderungen ein Backup der Kategoriestruktur
-- Alle Backups werden mit Datum und Uhrzeit gespeichert
-- Backups können wiederhergestellt oder gelöscht werden
-- Bei Problemen können Sie jederzeit zu einem funktionierenden Zustand zurückkehren
-
-## Systemvoraussetzungen
-
-- REDAXO ab Version 5.18.1
-- PHP 8.1 oder höher
-- Media Manager AddOn muss installiert sein
-
-## Hinweise für Entwickler
-
-Das AddOn nutzt moderne PHP-Techniken und folgt Best Practices für REDAXO-AddOns:
-
-- Strikte Typisierung mit PHP 8.1 Features
-- Namespaces für bessere Code-Organisation
-- Konsistente Fehlerbehandlung
-- Bootstrap 3 kompatibles Frontend
-- Responsives Design
-
-## Autor
-
-Thomas Skerbis  
-[KLXM Crossmedia GmbH](https://klxm.de)
+*Es geht nicht darum, Probleme zu haben - es geht darum, Lösungen zu finden. Willkommen bei REDAXO!*
