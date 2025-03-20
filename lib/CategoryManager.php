@@ -131,8 +131,11 @@ class CategoryManager
                     $insertSql->insert();
                 }
                 
-                // Cache leeren
-                rex_media_cache::deleteCategories();
+                // Cache leeren - einzelne Kategorien löschen
+                $sql->setQuery('SELECT id FROM ' . rex::getTable('media_category'));
+                foreach ($sql as $row) {
+                    rex_media_cache::deleteCategory((int)$row->getValue('id'));
+                }
                 
                 return [
                     'status' => true,
