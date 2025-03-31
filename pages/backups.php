@@ -100,7 +100,7 @@ if (rex_post('delete_all', 'boolean') && $csrfToken->isValid()) {
                 ' . $csrfToken->getHiddenField() . '
                 <p>' . rex_i18n::msg('media_cats_delete_all_confirm') . '</p>
                 <button class="btn btn-danger" type="submit" name="confirm_delete_all" value="1">' . rex_i18n::msg('media_cats_delete_all_confirm_button') . '</button>
-                <a class="btn btn-abort" href="' . rex_url::currentBackendPage() . '">' . rex_i18n::msg('media_cats_cancel_button') . '</a>
+                <a class="btn btn-save" href="' . rex_url::currentBackendPage() . '">' . rex_i18n::msg('media_cats_cancel_button') . '</a>
             </form>
         ';
     }
