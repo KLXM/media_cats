@@ -1,4 +1,4 @@
-# 🐱 KLXM media_cats  
+# 🐱 KLXM MediaCats
 
 Endlich Medienkategorien verschieben in REDAXO
 
