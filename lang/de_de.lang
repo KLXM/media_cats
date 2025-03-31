@@ -33,3 +33,4 @@ media_cats_name = Name
 media_cats_confirm_save = Möchten Sie die Änderungen an dieser Kategorie speichern? Dies kann Auswirkungen auf die Medienorganisation haben.
 media_cats_invalid_id = Ungültige Kategorie-ID
 media_cats_continue_anyway = Die Änderung wird trotzdem fortgesetzt.
+media_cats_cancel_button = Abbrechen
