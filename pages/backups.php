@@ -36,7 +36,7 @@ if (rex_post('restore', 'boolean') && $csrfToken->isValid()) {
                     ' . $csrfToken->getHiddenField() . '
                     <p>' . rex_i18n::msg('media_cats_restore_confirm', rex_escape($filename)) . '</p>
                     <button class="btn btn-warning" type="submit" name="confirm_restore" value="1">' . rex_i18n::msg('media_cats_restore_confirm_button') . '</button>
-                    <a class="btn btn-save" href="' . rex_url::currentBackendPage() . '">' . rex_i18n::msg('media_cats_cancel_button') . '</a>
+                    <a class="btn btn-abort" href="' . rex_url::currentBackendPage() . '">' . rex_i18n::msg('media_cats_cancel_button') . '</a>
                 </form>
             ';
         }
@@ -66,7 +66,7 @@ if (rex_post('delete', 'boolean') && $csrfToken->isValid()) {
                     ' . $csrfToken->getHiddenField() . '
                     <p>' . rex_i18n::msg('media_cats_delete_confirm', rex_escape($filename)) . '</p>
                     <button class="btn btn-danger" type="submit" name="confirm_delete" value="1">' . rex_i18n::msg('media_cats_delete_confirm_button') . '</button>
-                    <a class="btn btn btn-abort" href="' . rex_url::currentBackendPage() . '">' . rex_i18n::msg('media_cats_cancel_button') . '</a>
+                    <a class="btn btn btn-save" href="' . rex_url::currentBackendPage() . '">' . rex_i18n::msg('media_cats_cancel_button') . '</a>
                 </form>
             ';
         }
