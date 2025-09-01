@@ -131,6 +131,9 @@ class CategoryManager
                     $insertSql->insert();
                 }
                 
+                // Cache leeren nach Restore
+                $this->clearCache();
+                
                 // Cache leeren - einzelne Kategorien löschen
                 $sql->setQuery('SELECT id FROM ' . rex::getTable('media_category'));
                 foreach ($sql as $row) {
@@ -421,7 +424,7 @@ class CategoryManager
     }
 
     /**
-     * Überprüft, ob eine Kategorie-Hierarchie einen Zyklus enthalten würde
+     * Überprüft, ob eine Kategorie-Hierarchie einen Zyklus enthalten würde (optimiert)
      *
      * @param int $categoryId ID der zu überprüfenden Kategorie
      * @param int $newParentId ID der neuen Elternkategorie
@@ -439,6 +442,32 @@ class CategoryManager
             return false;
         }
         
+        // Optimiert: Nutze Cache wenn verfügbar
+        if ($this->flatCategoriesCache !== null) {
+            return $this->wouldCreateCycleOptimized($categoryId, $newParentId);
+        }
+        
+        // Fallback zur alten Methode
+        return $this->wouldCreateCycleLegacy($categoryId, $newParentId);
+    }
+    
+    /**
+     * Optimierte Zyklus-Erkennung mit Cache
+     */
+    private function wouldCreateCycleOptimized(int $categoryId, int $newParentId): bool
+    {
+        // Hole alle Kinder-IDs rekursiv aus dem Cache
+        $childIds = $this->getAllChildrenIdsFromCache($categoryId);
+        
+        // Wenn die neue Eltern-ID in den Kinder-IDs vorkommt, würde ein Zyklus entstehen
+        return in_array($newParentId, $childIds);
+    }
+    
+    /**
+     * Legacy Zyklus-Erkennung
+     */
+    private function wouldCreateCycleLegacy(int $categoryId, int $newParentId): bool
+    {
         // Prüfe, ob die neue Elternkategorie ein Nachkomme der aktuellen Kategorie ist
         $currentCategory = rex_media_category::get($categoryId);
         
@@ -451,6 +480,28 @@ class CategoryManager
         
         // Wenn die neue Eltern-ID in den Kinder-IDs vorkommt, würde ein Zyklus entstehen
         return in_array($newParentId, $childIds);
+    }
+    
+    /**
+     * Holt rekursiv alle Kinder-IDs einer Kategorie aus Cache
+     */
+    private function getAllChildrenIdsFromCache(int $categoryId): array
+    {
+        $childIds = [];
+        
+        if ($this->flatCategoriesCache === null) {
+            return $childIds;
+        }
+        
+        foreach ($this->flatCategoriesCache as $category) {
+            if ($category['parent_id'] === $categoryId) {
+                $childIds[] = $category['id'];
+                // Rekursiv für Enkel-Kategorien
+                $childIds = array_merge($childIds, $this->getAllChildrenIdsFromCache($category['id']));
+            }
+        }
+        
+        return $childIds;
     }
     
     /**
@@ -482,7 +533,7 @@ class CategoryManager
     }
 
     /**
-     * Aktualisiert eine Kategorie
+     * Aktualisiert eine Kategorie (mit Performance-Optimierung)
      *
      * @param int $categoryId ID der Kategorie
      * @param array $data Zu aktualisierende Daten (name, parent_id)
@@ -541,7 +592,7 @@ class CategoryManager
                 $sql->addGlobalUpdateFields();
                 $sql->update();
                 
-                // Cache leeren nach Änderungen
+                // Cache leeren nach Änderungen - wichtig für Performance
                 $this->clearCache();
                 
                 // Cache aktualisieren
@@ -562,6 +613,8 @@ class CategoryManager
                 ];
                 
             } catch (Exception $e) {
+                // Cache bei Fehlern auch leeren
+                $this->clearCache();
                 throw $e;
             }
             
