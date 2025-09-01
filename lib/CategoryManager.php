@@ -227,14 +227,144 @@ class CategoryManager
         ];
     }
 
+    /** @var array|null */
+    private ?array $categoryTreeCache = null;
+    
+    /** @var array|null */  
+    private ?array $flatCategoriesCache = null;
+
     /**
-     * Holt den Kategoriebaum aus der Datenbank
+     * Holt den Kategoriebaum aus der Datenbank (optimiert mit Caching)
      *
-     * @param int $parentId ID der Elternkategorie
+     * @param int $parentId ID der Elternkategorie  
      * @param int $level Ebene (für die Rekursion)
      * @return array Baumstruktur der Kategorien
      */
     public function getCategoryTree(int $parentId = 0, int $level = 0): array
+    {
+        // Cache nutzen für bessere Performance
+        if ($this->categoryTreeCache !== null && $parentId === 0) {
+            return $this->categoryTreeCache;
+        }
+        
+        try {
+            // Bei Root-Aufruf: Optimiertes Laden aller Kategorien in einem Query
+            if ($parentId === 0 && $this->categoryTreeCache === null) {
+                $this->loadAllCategoriesOptimized();
+                return $this->categoryTreeCache ?? [];
+            }
+            
+            // Für Unter-Ebenen: Aus Cache filtern
+            if ($this->flatCategoriesCache !== null) {
+                return $this->buildTreeFromCache($parentId, $level);
+            }
+            
+            // Fallback zur alten Methode falls Cache nicht verfügbar
+            return $this->getCategoryTreeLegacy($parentId, $level);
+            
+        } catch (Exception $e) {
+            // Fehlerbehandlung - leeres Array zurückgeben
+            return [];
+        }
+    }
+    
+    /**
+     * Lädt alle Kategorien in einem optimierten SQL-Query
+     */
+    private function loadAllCategoriesOptimized(): void 
+    {
+        try {
+            $sql = rex_sql::factory();
+            $sql->setQuery('
+                SELECT id, name, parent_id, path, createuser, updateuser, createdate, updatedate
+                FROM ' . rex::getTable('media_category') . '
+                ORDER BY parent_id, name
+            ');
+            
+            $allCategories = [];
+            foreach ($sql as $row) {
+                $allCategories[$row->getValue('id')] = [
+                    'id' => (int)$row->getValue('id'),
+                    'name' => $row->getValue('name'),
+                    'parent_id' => (int)$row->getValue('parent_id'),
+                    'path' => $row->getValue('path'),
+                    'children' => []
+                ];
+            }
+            
+            // Flache Liste für schnelle Suche speichern
+            $this->flatCategoriesCache = $allCategories;
+            
+            // Baum-Struktur aufbauen
+            $this->categoryTreeCache = $this->buildTreeFromFlat($allCategories);
+            
+        } catch (Exception $e) {
+            $this->categoryTreeCache = [];
+            $this->flatCategoriesCache = [];
+        }
+    }
+    
+    /**
+     * Baut Baum-Struktur aus flacher Liste auf
+     */
+    private function buildTreeFromFlat(array $flatCategories): array
+    {
+        $tree = [];
+        
+        foreach ($flatCategories as $id => $category) {
+            if ($category['parent_id'] === 0) {
+                // Root-Kategorie 
+                $tree[] = $this->addChildrenToCategory($category, $flatCategories, 0);
+            }
+        }
+        
+        return $tree;
+    }
+    
+    /**
+     * Fügt Kinder zu Kategorie hinzu (rekursiv)
+     */
+    private function addChildrenToCategory(array $category, array $flatCategories, int $level): array
+    {
+        $category['level'] = $level;
+        $category['children'] = [];
+        
+        foreach ($flatCategories as $childCandidate) {
+            if ($childCandidate['parent_id'] === $category['id']) {
+                $category['children'][] = $this->addChildrenToCategory($childCandidate, $flatCategories, $level + 1);
+            }
+        }
+        
+        return $category;
+    }
+    
+    /**
+     * Baut Teilbaum aus Cache für bestimmte Parent-ID
+     */
+    private function buildTreeFromCache(int $parentId, int $level): array
+    {
+        $result = [];
+        
+        if ($this->flatCategoriesCache === null) {
+            return $result;
+        }
+        
+        foreach ($this->flatCategoriesCache as $category) {
+            if ($category['parent_id'] === $parentId) {
+                $categoryWithChildren = $category;
+                $categoryWithChildren['level'] = $level;
+                $categoryWithChildren['children'] = $this->buildTreeFromCache($category['id'], $level + 1);
+                $result[] = $categoryWithChildren;
+            }
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Legacy-Methode für Rückwärtskompatibilität
+     */
+    private function getCategoryTreeLegacy(int $parentId = 0, int $level = 0): array
     {
         $categories = [];
         
@@ -259,7 +389,7 @@ class CategoryManager
                     'parent_id' => $categoryObject->getParentId(),
                     'path' => $categoryObject->getPath(),
                     'level' => $level,
-                    'children' => $this->getCategoryTree($id, $level + 1)
+                    'children' => $this->getCategoryTreeLegacy($id, $level + 1)
                 ];
             }
         } catch (Exception $e) {
@@ -267,6 +397,27 @@ class CategoryManager
         }
         
         return $categories;
+    }
+    
+    /**
+     * Holt flache Liste aller Kategorien (optimiert)
+     */
+    public function getAllCategoriesFlat(): array
+    {
+        if ($this->flatCategoriesCache === null) {
+            $this->loadAllCategoriesOptimized();
+        }
+        
+        return $this->flatCategoriesCache ?? [];
+    }
+    
+    /**
+     * Löscht den Cache (nach Updates)
+     */
+    public function clearCache(): void
+    {
+        $this->categoryTreeCache = null;
+        $this->flatCategoriesCache = null;
     }
 
     /**
@@ -389,6 +540,9 @@ class CategoryManager
                 
                 $sql->addGlobalUpdateFields();
                 $sql->update();
+                
+                // Cache leeren nach Änderungen
+                $this->clearCache();
                 
                 // Cache aktualisieren
                 rex_media_cache::deleteCategory($categoryId);

@@ -10,6 +10,30 @@
     margin-left: 5px;
 }
 
+/* Suchfunktionalität */
+.media-cats-search {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.media-cats-search .search-status {
+    margin-top: 5px;
+    font-size: 0.9em;
+}
+
+/* Performance-Hinweis */
+.performance-hint {
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+}
+
 /* Einrückungsebenen */
 .level-1 {
     margin-left: 20px;
@@ -68,4 +92,18 @@
     color: #fff;
     background-color: #3a8ac9;
     border-color: #3a8ac9;
+}
+
+/* Akkordeon-Optimierungen für große Listen */
+.panel-group {
+    max-height: none; /* Entferne Höhenbeschränkungen für bessere Performance */
+}
+
+.panel-collapse {
+    /* Lazy-Loading Vorbereitung */
+}
+
+.panel-collapse.collapse:not(.in) {
+    /* Inaktive Panels optimieren */
+    overflow: hidden;
 }
