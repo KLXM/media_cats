@@ -1,5 +1,38 @@
 /* Styles für das media_cats AddOn */
 
+/* Listen ohne Punkte - Tree View, aber mit Einrückungen */
+#media-cats-tree ul,
+#media-cats-tree li,
+.tree-container ul,
+.tree-container li,
+.tree-children,
+.tree-node,
+.tree-root ul,
+.tree-root li {
+    list-style: none !important;
+    list-style-type: none !important;
+    list-style-position: outside !important;
+    list-style-image: none !important;
+}
+
+/* Einrückungen für Tree-Hierarchie beibehalten */
+.tree-children {
+    padding-left: 20px !important;
+}
+
+.tree-node .tree-children {
+    margin-left: 20px;
+}
+
+/* Browser-spezifische Overrides */
+#media-cats-tree ul:before,
+#media-cats-tree li:before,
+.tree-container ul:before,
+.tree-container li:before {
+    content: none !important;
+    display: none !important;
+}
+
 /* Allgemeine Styles */
 .rex-display-inline {
     display: inline-block;
@@ -97,10 +130,6 @@
 /* Akkordeon-Optimierungen für große Listen */
 .panel-group {
     max-height: none; /* Entferne Höhenbeschränkungen für bessere Performance */
-}
-
-.panel-collapse {
-    /* Lazy-Loading Vorbereitung */
 }
 
 .panel-collapse.collapse:not(.in) {
