@@ -12,6 +12,9 @@ page:
         categories:
             title: 'translate:media_cats_categories'
             icon: rex-icon fa-folder
+        ajax:
+            title: 'AJAX'
+            hidden: true
         backups:
             title: 'translate:media_cats_backups'
             icon: rex-icon fa-database

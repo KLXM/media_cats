@@ -6,6 +6,7 @@ use rex;
 use rex_sql;
 use rex_sql_exception;
 use rex_media_category;
+use rex_media_category_select;
 use rex_media_category_service;
 use rex_media_cache;
 use rex_path;
@@ -673,6 +674,369 @@ class CategoryManager
     }
 
     /**
+     * Lädt nur direkte Kinder einer Kategorie (für AJAX Lazy Loading)
+     *
+     * @param int $parentId ID der Elternkategorie
+     * @return array Array der direkten Kindkategorien
+     */
+    public function getDirectChildren(int $parentId): array
+    {
+        try {
+            $sql = rex_sql::factory();
+            $sql->setQuery('
+                SELECT id, name, parent_id, path,
+                       (SELECT COUNT(*) FROM ' . rex::getTable('media_category') . ' c2 WHERE c2.parent_id = c1.id) as child_count
+                FROM ' . rex::getTable('media_category') . ' c1
+                WHERE parent_id = :parent_id
+                ORDER BY name
+            ', ['parent_id' => $parentId]);
+            
+            $children = [];
+            foreach ($sql as $row) {
+                $children[] = [
+                    'id' => (int)$row->getValue('id'),
+                    'name' => $row->getValue('name'),
+                    'parent_id' => (int)$row->getValue('parent_id'),
+                    'path' => $row->getValue('path'),
+                    'has_children' => (int)$row->getValue('child_count') > 0
+                ];
+            }
+            
+            return $children;
+            
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+    
+    /**
+     * Holt den vollständigen Pfad zu einer Kategorie
+     *
+     * @param int $categoryId ID der Kategorie
+     * @return array Pfad-Array mit allen Elternkategorien
+     */
+    public function getCategoryPath(int $categoryId): array
+    {
+        $path = [];
+        
+        try {
+            $currentId = $categoryId;
+            
+            while ($currentId > 0) {
+                $sql = rex_sql::factory();
+                $sql->setQuery('
+                    SELECT id, name, parent_id 
+                    FROM ' . rex::getTable('media_category') . ' 
+                    WHERE id = :id
+                ', ['id' => $currentId]);
+                
+                if ($sql->getRows() > 0) {
+                    array_unshift($path, [
+                        'id' => (int)$sql->getValue('id'),
+                        'name' => $sql->getValue('name'),
+                        'parent_id' => (int)$sql->getValue('parent_id')
+                    ]);
+                    
+                    $currentId = (int)$sql->getValue('parent_id');
+                } else {
+                    break;
+                }
+            }
+            
+        } catch (Exception $e) {
+            // Bei Fehler leeren Pfad zurückgeben
+            $path = [];
+        }
+        
+        return $path;
+    }
+    
+    /**
+     * Sucht Kategorien nach Suchbegriff
+     *
+     * @param string $searchTerm Suchbegriff
+     * @param int $limit Maximale Anzahl Ergebnisse
+     * @return array Array der gefundenen Kategorien
+     */
+    public function searchCategories(string $searchTerm, int $limit = 50): array
+    {
+        if (strlen($searchTerm) < 2) {
+            return [];
+        }
+        
+        try {
+            $sql = rex_sql::factory();
+            $searchPattern = '%' . $searchTerm . '%';
+            
+            $sql->setQuery('
+                SELECT id, name, parent_id, path,
+                       (SELECT COUNT(*) FROM ' . rex::getTable('media_category') . ' c2 WHERE c2.parent_id = c1.id) as child_count
+                FROM ' . rex::getTable('media_category') . ' c1
+                WHERE name LIKE :search
+                ORDER BY 
+                    CASE 
+                        WHEN name LIKE :exact_search THEN 0 
+                        WHEN name LIKE :start_search THEN 1 
+                        ELSE 2 
+                    END,
+                    name
+                LIMIT :limit
+            ', [
+                'search' => $searchPattern,
+                'exact_search' => $searchTerm,
+                'start_search' => $searchTerm . '%',
+                'limit' => $limit
+            ]);
+            
+            $results = [];
+            foreach ($sql as $row) {
+                // Pfad für bessere Darstellung laden
+                $pathNames = $this->getPathNames((int)$row->getValue('id'));
+                
+                $results[] = [
+                    'id' => (int)$row->getValue('id'),
+                    'name' => $row->getValue('name'),
+                    'parent_id' => (int)$row->getValue('parent_id'),
+                    'path' => $row->getValue('path'),
+                    'path_display' => implode(' > ', $pathNames),
+                    'has_children' => (int)$row->getValue('child_count') > 0
+                ];
+            }
+            
+            return $results;
+            
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+    
+    /**
+     * Holt Kategorienamen für Pfad-Darstellung
+     *
+     * @param int $categoryId ID der Kategorie
+     * @return array Array der Kategorienamen im Pfad
+     */
+    private function getPathNames(int $categoryId): array
+    {
+        $path = $this->getCategoryPath($categoryId);
+        return array_column($path, 'name');
+    }
+    
+    /**
+     * Holt Optionen für Elternkategorie-Auswahl mit REDAXO's nativer rex_media_category_select
+     *
+     * @param int $excludeId ID der aktuellen Kategorie (ausschließen)
+     * @param int $selectedId ID der ausgewählten Kategorie
+     * @param string $search Suchbegriff für Filterung
+     * @param int $limit Maximale Anzahl Optionen
+     * @return array Array der verfügbaren Elternkategorien
+     */
+    public function getParentOptions(int $excludeId, int $selectedId = 0, string $search = '', int $limit = 100): array
+    {
+        $options = [];
+        
+        // Root-Option immer hinzufügen
+        $options[] = [
+            'id' => 0,
+            'name' => '--- Keine Elternkategorie ---',
+            'display_name' => '--- Keine Elternkategorie ---',
+            'selected' => ($selectedId === 0)
+        ];
+        
+        try {
+            error_log('getParentOptions using rex_media_category_select - Exclude ID: ' . $excludeId . ', Selected: ' . $selectedId);
+            
+            // REDAXO's native rex_media_category_select verwenden
+            $categorySelect = new rex_media_category_select(false); // false = keine Permissions prüfen
+            $categorySelect->setName('temp_select');
+            
+            // HTML des Select-Elements generieren um die Optionen zu extrahieren
+            $selectHtml = $categorySelect->get();
+            
+            // Optionen aus dem generierten HTML parsen
+            $this->parseSelectOptionsFromHtml($selectHtml, $options, $excludeId, $selectedId, $search, $limit);
+            
+            error_log('rex_media_category_select returned ' . count($options) . ' total options');
+            
+        } catch (Exception $e) {
+            error_log('Error in rex_media_category_select based getParentOptions: ' . $e->getMessage());
+            
+            // Fallback: Manual API usage
+            $this->getParentOptionsManual($options, $excludeId, $selectedId, $search, $limit);
+        }
+        
+        return $options;
+    }
+    
+    /**
+     * Parst Optionen aus rex_media_category_select HTML
+     */
+    private function parseSelectOptionsFromHtml(string $selectHtml, array &$options, int $excludeId, int $selectedId, string $search, int $limit): void
+    {
+        // Parse <option> Tags aus dem HTML
+        if (preg_match_all('/<option[^>]*value="(\d+)"[^>]*>(.*?)<\/option>/i', $selectHtml, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $optionValue = (int)$match[1];
+                $optionText = trim(strip_tags($match[2]));
+                
+                // Aktuelle Kategorie ausschließen
+                if ($optionValue == $excludeId) {
+                    continue;
+                }
+                
+                // Suchfilter anwenden
+                if (!empty($search) && strlen($search) >= 2) {
+                    if (stripos($optionText, $search) === false) {
+                        continue;
+                    }
+                }
+                
+                // Level aus der Einrückung bestimmen (REDAXO nutzt &nbsp; für Einrückung)
+                $level = 0;
+                $displayName = $optionText;
+                if (preg_match('/^(\s|&nbsp;)*/', $optionText, $indentMatch)) {
+                    $indent = $indentMatch[0];
+                    $level = (strlen(str_replace('&nbsp;', ' ', $indent)) / 2);
+                    $displayName = $optionText;
+                }
+                
+                $options[] = [
+                    'id' => $optionValue,
+                    'name' => $optionText,
+                    'display_name' => $displayName,
+                    'selected' => ($selectedId === $optionValue),
+                    'level' => $level
+                ];
+                
+                // Limit beachten
+                if (count($options) > $limit) {
+                    break;
+                }
+            }
+        }
+    }
+    
+    /**
+     * Fallback-Implementierung ohne rex_media_category_select
+     */
+    private function getParentOptionsManual(array &$options, int $excludeId, int $selectedId, string $search, int $limit): void
+    {
+        // Alle Kategorien über REDAXO's native API sammeln (rekursiv)
+        $allCategories = $this->getAllCategoriesFromNativeApi();
+        
+        foreach ($allCategories as $category) {
+            $categoryId = $category->getId();
+            $categoryName = $category->getName();
+            
+            // Aktuelle Kategorie ausschließen
+            if ($categoryId == $excludeId) {
+                continue;
+            }
+            
+            // Suchfilter anwenden
+            if (!empty($search) && strlen($search) >= 2) {
+                if (stripos($categoryName, $search) === false) {
+                    continue;
+                }
+            }
+            
+            // Hierarchie-Level basierend auf REDAXO's Path-System
+            $path = $category->getPath();
+            $level = 0;
+            if ($path && $path !== '|') {
+                $pathParts = array_filter(explode('|', $path));
+                $level = count($pathParts) - 1;
+            }
+            
+            // Hierarchische Darstellung
+            $displayName = $categoryName;
+            if ($level > 0) {
+                $indent = str_repeat('  ', $level);
+                $displayName = $indent . '└ ' . $categoryName;
+            }
+            
+            $options[] = [
+                'id' => $categoryId,
+                'name' => $categoryName,
+                'display_name' => $displayName,
+                'selected' => ($selectedId === $categoryId),
+                'level' => $level,
+                'parent_id' => $category->getParentId(),
+                'path' => $path
+            ];
+            
+            // Limit beachten
+            if (count($options) > $limit) {
+                break;
+            }
+        }
+    }
+
+    /**
+     * Sammelt alle Kategorien rekursiv über REDAXO's native API
+     *
+     * @return array Array aller rex_media_category Objekte
+     */
+    private function getAllCategoriesFromNativeApi(): array
+    {
+        $allCategories = [];
+        $this->collectCategoriesRecursive(rex_media_category::getRootCategories(), $allCategories);
+        return $allCategories;
+    }
+
+    /**
+     * Hilfsfunktion für rekursives Sammeln der Kategorien
+     *
+     * @param array $categories Array von rex_media_category Objekten
+     * @param array $result Referenz auf Ergebnis-Array
+     * @return void
+     */
+    private function collectCategoriesRecursive(array $categories, array &$result): void
+    {
+        foreach ($categories as $category) {
+            $result[] = $category;
+            // Rekursiv alle Kinder sammeln
+            $children = $category->getChildren();
+            if (!empty($children)) {
+                $this->collectCategoriesRecursive($children, $result);
+            }
+        }
+    }
+    
+    /**
+     * Holt alle Kinder-IDs direkt aus der Datenbank (für Performance)
+     *
+     * @param int $parentId ID der Elternkategorie
+     * @return array Array aller Kinder-IDs
+     */
+    private function getAllChildrenIdsFromDb(int $parentId): array
+    {
+        $childIds = [];
+        
+        try {
+            $sql = rex_sql::factory();
+            $sql->setQuery('
+                SELECT id 
+                FROM ' . rex::getTable('media_category') . ' 
+                WHERE parent_id = :parent_id
+            ', ['parent_id' => $parentId]);
+            
+            foreach ($sql as $row) {
+                $childId = (int)$row->getValue('id');
+                $childIds[] = $childId;
+                
+                // Rekursiv für Enkel-Kategorien
+                $childIds = array_merge($childIds, $this->getAllChildrenIdsFromDb($childId));
+            }
+            
+        } catch (Exception $e) {
+            // Bei Fehler leeres Array zurückgeben
+        }
+        
+        return $childIds;
+    }
+
+    /**
      * Formatiert eine Dateigröße in lesbare Form
      *
      * @param int $bytes Größe in Bytes
@@ -687,5 +1051,138 @@ class CategoryManager
         $bytes /= (1 << (10 * $pow));
         
         return round($bytes, 2) . ' ' . $units[$pow];
+    }
+
+    /**
+     * Erstellt hierarchische Parent-Optionen
+     *
+     * @param array $excludedIds Ausgeschlossene IDs
+     * @param string $search Suchbegriff
+     * @param int $selectedId Ausgewählte ID
+     * @param int $limit Limit
+     * @return array
+     */
+    private function buildHierarchicalParentOptions(array $excludedIds, string $search, int $selectedId, int $limit): array
+    {
+        $options = [];
+        
+        error_log('buildHierarchicalParentOptions called with excludedIds: ' . implode(', ', $excludedIds));
+        
+        // Root-Kategorien laden
+        $rootCategories = $this->getParentOptionCategories(0, $excludedIds, $search);
+        error_log('Found ' . count($rootCategories) . ' root categories');
+        
+        foreach ($rootCategories as $category) {
+            if (count($options) >= $limit) break;
+            
+            $options[] = [
+                'id' => $category['id'],
+                'name' => $category['name'],
+                'display_name' => $category['name'],
+                'selected' => ($selectedId == $category['id'])
+            ];
+            
+            // Unterkategorien hinzufügen
+            $subOptions = $this->getSubParentOptions($category['id'], $excludedIds, $search, $selectedId, 1, $limit - count($options));
+            $options = array_merge($options, $subOptions);
+        }
+        
+        error_log('buildHierarchicalParentOptions returning ' . count($options) . ' options');
+        return $options;
+    }
+
+    /**
+     * Holt Unterkategorien für Parent-Optionen
+     *
+     * @param int $parentId Parent-ID
+     * @param array $excludedIds Ausgeschlossene IDs
+     * @param string $search Suchbegriff
+     * @param int $selectedId Ausgewählte ID
+     * @param int $level Verschachtelungstiefe
+     * @param int $remainingLimit Verbleibendes Limit
+     * @return array
+     */
+    private function getSubParentOptions(int $parentId, array $excludedIds, string $search, int $selectedId, int $level, int $remainingLimit): array
+    {
+        if ($remainingLimit <= 0 || $level > 4) { // Max. 4 Ebenen tief
+            return [];
+        }
+        
+        $options = [];
+        $subCategories = $this->getParentOptionCategories($parentId, $excludedIds, $search);
+        
+        foreach ($subCategories as $category) {
+            if (count($options) >= $remainingLimit) break;
+            
+            // Einfache Einrückung mit normalen Leerzeichen
+            $indent = str_repeat('  ', $level); // 2 Leerzeichen pro Ebene
+            
+            $options[] = [
+                'id' => $category['id'],
+                'name' => $category['name'],
+                'display_name' => $indent . '└ ' . $category['name'],
+                'selected' => ($selectedId == $category['id'])
+            ];
+            
+            // Weitere Unterkategorien
+            $subOptions = $this->getSubParentOptions(
+                $category['id'], 
+                $excludedIds, 
+                $search, 
+                $selectedId, 
+                $level + 1, 
+                $remainingLimit - count($options)
+            );
+            $options = array_merge($options, $subOptions);
+        }
+        
+        return $options;
+    }
+
+    /**
+     * Holt Kategorien für Parent-Optionen
+     *
+     * @param int $parentId Parent-ID
+     * @param array $excludedIds Ausgeschlossene IDs
+     * @param string $search Suchbegriff
+     * @return array
+     */
+    private function getParentOptionCategories(int $parentId, array $excludedIds, string $search): array
+    {
+        $whereClause = 'WHERE parent_id = :parent_id';
+        $params = ['parent_id' => $parentId];
+        
+        if (!empty($excludedIds)) {
+            $whereClause .= ' AND id NOT IN (' . implode(',', array_map('intval', $excludedIds)) . ')';
+        }
+        
+        if (!empty($search) && strlen($search) >= 2) {
+            $whereClause .= ' AND name LIKE :search';
+            $params['search'] = '%' . $search . '%';
+        }
+        
+        $sql = rex_sql::factory();
+        $query = '
+            SELECT id, name
+            FROM ' . rex::getTable('media_category') . '
+            ' . $whereClause . '
+            ORDER BY priority, name
+        ';
+        
+        error_log('getParentOptionCategories query: ' . $query);
+        error_log('getParentOptionCategories params: ' . print_r($params, true));
+        
+        $sql->setQuery($query, $params);
+        
+        $categories = [];
+        foreach ($sql as $row) {
+            $categories[] = [
+                'id' => (int)$row->getValue('id'),
+                'name' => $row->getValue('name')
+            ];
+        }
+        
+        error_log('getParentOptionCategories found ' . count($categories) . ' categories for parent_id=' . $parentId);
+        return $categories;
     }
 }

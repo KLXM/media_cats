@@ -106,17 +106,13 @@ $treeBody .= '
                     
                     <div class="form-group">
                         <label for="edit-parent-category">Elternkategorie:</label>
-                        <select id="edit-parent-category" name="parent_id" class="form-control selectpicker" 
-                                data-live-search="true" 
-                                data-size="8"
-                                data-style="btn-default"
-                                data-none-selected-text="Kategorie wählen..."
-                                data-live-search-placeholder="Kategorie suchen..."
-                                data-actions-box="true"
-                                title="Elternkategorie auswählen...">
+                        <select id="edit-parent-category" name="parent_id" class="form-control">
                             <option value="0">--- Keine Elternkategorie ---</option>
                         </select>
-                        <small class="help-block">Verwenden Sie die Suche um schnell die gewünschte Kategorie zu finden.</small>
+                        <div class="parent-search-container" style="margin-top: 10px;">
+                            <input type="text" id="parent-search" class="form-control" placeholder="Elternkategorie suchen...">
+                            <div class="parent-search-results" style="display:none;"></div>
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -138,28 +134,23 @@ $fragment->setVar('title', 'Kategorie-Browser', false);
 $fragment->setVar('body', $treeBody, false);
 echo $fragment->parse('core/page/section.php');
 
+// CSRF Token und AJAX URL für JavaScript bereitstellen
+// CSS und JS werden bereits in boot.php geladen
 ?>
 <script type="text/javascript">
 $(document).ready(function() {
-    // Debug-Information
-    console.log('Current URL:', window.location.href);
-    
     // Globale Konfiguration für MediaCatsTreeBrowser
     window.MediaCatsConfig = {
         ajaxUrl: '<?php echo rex_url::currentBackendPage(['page' => 'media_cats/ajax']); ?>',
         csrfToken: '<?php echo $csrfToken->getValue(); ?>'
     };
     
-    console.log('Config AJAX URL:', window.MediaCatsConfig.ajaxUrl);
-    console.log('Config CSRF Token:', window.MediaCatsConfig.csrfToken);
-    
     // Tree Browser initialisieren
     if (typeof MediaCatsTreeBrowser !== 'undefined') {
-        console.log('Initializing MediaCatsTreeBrowser...');
         var mediaCatsTree = new MediaCatsTreeBrowser();
         mediaCatsTree.init();
     } else {
-        console.error('MediaCatsTreeBrowser class not found - check if media_cats_tree.js is loaded');
+        console.error('MediaCatsTreeBrowser class not found');
     }
 });
 </script>
