@@ -23,7 +23,7 @@ if ($errorMessage) {
     echo rex_view::error($errorMessage);
 }
 
-// Performance-Hinweis und Backup-Bereich
+// Performance-Hinweis und Info-Bereich
 $infoBody = '';
 if ($totalCategories > 100) {
     $infoBody .= '<div class="alert alert-info">';
@@ -32,19 +32,23 @@ if ($totalCategories > 100) {
     $infoBody .= '</div>';
 }
 
-// Manuelles Backup erstellen
+// Info-Bereich mit automatischen Backups
 $infoBody .= '<div class="row">';
 $infoBody .= '<div class="col-md-6">';
-$infoBody .= '<h4>Backup erstellen</h4>';
-$infoBody .= '<p>Vor größeren Änderungen empfiehlt sich ein Backup:</p>';
-$infoBody .= '<button class="btn btn-primary" id="create-backup-btn">Backup jetzt erstellen</button>';
+$infoBody .= '<h4><i class="fa fa-shield"></i> Backup-System</h4>';
+$infoBody .= '<div class="alert alert-success">';
+$infoBody .= '<strong><i class="fa fa-check-circle"></i> Automatische Backups aktiv:</strong><br>';
+$infoBody .= 'Das System erstellt automatisch Backups vor jeder Änderung an den Kategorien. ';
+$infoBody .= 'Diese werden im AddOn-Datenverzeichnis gespeichert und können bei Bedarf wiederhergestellt werden.';
+$infoBody .= '</div>';
 $infoBody .= '</div>';
 
 $infoBody .= '<div class="col-md-6">';
-$infoBody .= '<h4>Statistiken</h4>';
-$infoBody .= '<ul>';
-$infoBody .= '<li>Kategorien gesamt: <strong>' . $totalCategories . '</strong></li>';
-$infoBody .= '<li>Modus: <strong>' . ($totalCategories > 100 ? 'Performance (AJAX)' : 'Standard') . '</strong></li>';
+$infoBody .= '<h4><i class="fa fa-bar-chart"></i> Statistiken</h4>';
+$infoBody .= '<ul class="list-unstyled">';
+$infoBody .= '<li><i class="fa fa-folder-o"></i> Kategorien gesamt: <strong>' . $totalCategories . '</strong></li>';
+$infoBody .= '<li><i class="fa fa-cogs"></i> Modus: <strong>' . ($totalCategories > 100 ? 'Performance (AJAX)' : 'Standard') . '</strong></li>';
+$infoBody .= '<li><i class="fa fa-shield"></i> Backup-System: <strong class="text-success">Aktiv</strong></li>';
 $infoBody .= '</ul>';
 $infoBody .= '</div>';
 $infoBody .= '</div>';
