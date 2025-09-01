@@ -66,8 +66,9 @@ if (rex_post('save_category', 'boolean') && $csrfToken->isValid()) {
     }
 }
 
-// Kategoriebaum laden
+// Kategoriebaum laden - nur einmal!
 $categoryTree = $categoryManager->getCategoryTree();
+$allCategoriesFlat = $categoryManager->getAllCategoriesFlat();
 
 // Ausgabe der Meldungen
 if ($successMessage) {
@@ -87,9 +88,20 @@ $fragment->setVar('title', rex_i18n::msg('media_cats_backups'), false);
 $fragment->setVar('body', $backup_form, false);
 echo $fragment->parse('core/page/section.php');
 
-// Kategoriebaum als Akkordeon anzeigen
-$categoriesBody = '<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">';
-$categoriesBody .= renderCategoryAccordion($categoryTree, $categoryManager);
+// Kategoriebaum als Akkordeon anzeigen - mit optimierter Darstellung
+$categoryCount = count($allCategoriesFlat);
+$categoriesBody = '';
+
+// Performance-Hinweis bei vielen Kategorien
+if ($categoryCount > 100) {
+    $categoriesBody .= '<div class="performance-hint">';
+    $categoriesBody .= '<strong>Performance-Tipp:</strong> Bei ' . $categoryCount . ' Kategorien empfiehlt es sich, die Suchfunktion zu nutzen. ';
+    $categoriesBody .= 'Nur die gerade bearbeitete Kategorie wird vollständig geladen.';
+    $categoriesBody .= '</div>';
+}
+
+$categoriesBody .= '<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">';
+$categoriesBody .= renderCategoryAccordion($categoryTree, $allCategoriesFlat);
 $categoriesBody .= '</div>';
 
 $fragment = new rex_fragment();
@@ -98,17 +110,16 @@ $fragment->setVar('body', $categoriesBody, false);
 echo $fragment->parse('core/page/section.php');
 
 /**
- * Rendert das Akkordeon für die Kategoriestruktur
+ * Rendert das Akkordeon für die Kategoriestruktur (optimiert)
  *
  * @param array $categories Kategorien
- * @param CategoryManager $categoryManager Instanz der Kategorie-Verwaltungsklasse
+ * @param array $allCategoriesFlat Flache Liste aller Kategorien
  * @param int $level Aktuelle Ebene für die Einrückung
  * @return string HTML-Code des Akkordeons
  */
-function renderCategoryAccordion(array $categories, CategoryManager $categoryManager, int $level = 0): string
+function renderCategoryAccordion(array $categories, array $allCategoriesFlat, int $level = 0): string
 {
     $output = '';
-    $allCategories = $categoryManager->getCategoryTree();
     $csrfToken = rex_csrf_token::factory('media_cats');
     
     foreach ($categories as $category) {
@@ -156,8 +167,8 @@ function renderCategoryAccordion(array $categories, CategoryManager $categoryMan
         $output .= '<select class="form-control selectpicker" id="parent_id_' . $categoryId . '" name="parent_id" data-live-search="true" data-width="100%">';
         $output .= '<option value="0">' . rex_i18n::msg('media_cats_no_parent') . '</option>';
         
-        // Alle möglichen Elternkategorien auflisten
-        $output .= renderCategoryOptions($allCategories, $categoryId, $category['parent_id']);
+        // Alle möglichen Elternkategorien auflisten - optimiert mit flacher Liste  
+        $output .= renderCategoryOptionsOptimized($allCategoriesFlat, $categoryId, $category['parent_id']);
         
         $output .= '</select>';
         $output .= '</div>';
@@ -173,7 +184,7 @@ function renderCategoryAccordion(array $categories, CategoryManager $categoryMan
         
         // Rekursive Verarbeitung der Kindkategorien
         if (!empty($category['children'])) {
-            $output .= renderCategoryAccordion($category['children'], $categoryManager, $level + 1);
+            $output .= renderCategoryAccordion($category['children'], $allCategoriesFlat, $level + 1);
         }
     }
     
@@ -181,42 +192,110 @@ function renderCategoryAccordion(array $categories, CategoryManager $categoryMan
 }
 
 /**
- * Rendert die Optionen für das Elternkategorie-Dropdown
+ * Rendert die Optionen für das Elternkategorie-Dropdown (optimiert)
  *
- * @param array $categories Alle Kategorien
+ * @param array $allCategoriesFlat Flache Liste aller Kategorien
  * @param int $currentId ID der aktuellen Kategorie
- * @param int $selectedId ID der ausgewählten Elternkategorie
- * @param int $level Aktuelle Ebene für die Einrückung
+ * @param int $selectedId ID der ausgewählten Elternkategorie  
  * @return string HTML-Code der Optionen
  */
-function renderCategoryOptions(array $categories, int $currentId, int $selectedId, int $level = 0): string
+function renderCategoryOptionsOptimized(array $allCategoriesFlat, int $currentId, int $selectedId): string
 {
     $output = '';
-    $indent = str_repeat('&nbsp;&nbsp;&nbsp;', $level);
     
-    foreach ($categories as $category) {
-        // Überspringe sich selbst und direkte Kinder
-        if ($category['id'] != $currentId) {
-            $selected = ($category['id'] == $selectedId) ? ' selected="selected"' : '';
-            $dataLevel = ' data-level="' . $level . '"';
-            $output .= '<option value="' . $category['id'] . '"' . $selected . $dataLevel . '>' . $indent . rex_escape($category['name']) . '</option>';
-            
-            // Rekursive Verarbeitung, aber nur wenn es nicht die aktuelle Kategorie ist
-            if (!empty($category['children'])) {
-                $includeInOptions = true;
-                
-                // Prüfen ob die aktuelle Kategorie im Pfad der Kategorie liegt (verhindert zyklische Abhängigkeiten)
-                $pathIds = array_filter(explode('|', $category['path']));
-                if (in_array($currentId, $pathIds)) {
-                    $includeInOptions = false;
-                }
-                
-                if ($includeInOptions) {
-                    $output .= renderCategoryOptions($category['children'], $currentId, $selectedId, $level + 1);
-                }
-            }
-        }
+    // Baue hierarchische Darstellung aus flacher Liste
+    $hierarchyOptions = buildHierarchicalOptions($allCategoriesFlat, $currentId);
+    
+    foreach ($hierarchyOptions as $option) {
+        $selected = ($option['id'] == $selectedId) ? ' selected="selected"' : '';
+        $output .= '<option value="' . $option['id'] . '"' . $selected . '>' . $option['display_name'] . '</option>';
     }
     
     return $output;
+}
+
+/**
+ * Erstellt hierarchische Options-Liste aus flacher Kategorie-Liste
+ *
+ * @param array $allCategoriesFlat Flache Liste aller Kategorien  
+ * @param int $excludeId ID der aktuellen Kategorie (ausschließen)
+ * @return array Options mit display_name und id
+ */
+function buildHierarchicalOptions(array $allCategoriesFlat, int $excludeId): array
+{
+    $options = [];
+    
+    // Erstelle eine Map für schnelle Pfad-Auflösung
+    $categoryMap = [];
+    foreach ($allCategoriesFlat as $category) {
+        $categoryMap[$category['id']] = $category;
+    }
+    
+    // Ausgeschlossene IDs sammeln (aktuelle Kategorie und ihre Kinder)
+    $excludedIds = [$excludeId];
+    $excludedIds = array_merge($excludedIds, findAllChildrenIds($allCategoriesFlat, $excludeId));
+    
+    foreach ($allCategoriesFlat as $category) {
+        // Überspringe ausgeschlossene Kategorien
+        if (in_array($category['id'], $excludedIds)) {
+            continue;
+        }
+        
+        // Erstelle hierarchischen Namen
+        $displayName = buildHierarchicalName($category, $categoryMap);
+        
+        $options[] = [
+            'id' => $category['id'],
+            'parent_id' => $category['parent_id'],
+            'display_name' => $displayName
+        ];
+    }
+    
+    // Sortiere nach Parent-ID und Name
+    usort($options, function($a, $b) {
+        if ($a['parent_id'] !== $b['parent_id']) {
+            return $a['parent_id'] - $b['parent_id'];
+        }
+        return strcmp($a['display_name'], $b['display_name']);
+    });
+    
+    return $options;
+}
+
+/**
+ * Erstellt hierarchischen Namen für eine Kategorie
+ */
+function buildHierarchicalName(array $category, array $categoryMap): string
+{
+    $names = [$category['name']];
+    $currentParentId = $category['parent_id'];
+    
+    // Durchlaufe Pfad nach oben
+    while ($currentParentId > 0 && isset($categoryMap[$currentParentId])) {
+        $parentCategory = $categoryMap[$currentParentId];
+        array_unshift($names, $parentCategory['name']);
+        $currentParentId = $parentCategory['parent_id'];
+    }
+    
+    // Erstelle eingerückten Namen
+    $indent = str_repeat('&nbsp;&nbsp;&nbsp;', max(0, count($names) - 1));
+    return $indent . rex_escape(end($names));
+}
+
+/**
+ * Findet alle Kinder-IDs einer Kategorie rekursiv
+ */
+function findAllChildrenIds(array $allCategoriesFlat, int $parentId): array
+{
+    $childIds = [];
+    
+    foreach ($allCategoriesFlat as $category) {
+        if ($category['parent_id'] === $parentId) {
+            $childIds[] = $category['id'];
+            // Rekursiv für Enkel-Kategorien
+            $childIds = array_merge($childIds, findAllChildrenIds($allCategoriesFlat, $category['id']));
+        }
+    }
+    
+    return $childIds;
 }
