@@ -1,5 +1,38 @@
 /* Styles für das media_cats AddOn */
 
+/* Listen ohne Punkte - Tree View, aber mit Einrückungen */
+#media-cats-tree ul,
+#media-cats-tree li,
+.tree-container ul,
+.tree-container li,
+.tree-children,
+.tree-node,
+.tree-root ul,
+.tree-root li {
+    list-style: none !important;
+    list-style-type: none !important;
+    list-style-position: outside !important;
+    list-style-image: none !important;
+}
+
+/* Einrückungen für Tree-Hierarchie beibehalten */
+.tree-children {
+    padding-left: 20px !important;
+}
+
+.tree-node .tree-children {
+    margin-left: 20px;
+}
+
+/* Browser-spezifische Overrides */
+#media-cats-tree ul:before,
+#media-cats-tree li:before,
+.tree-container ul:before,
+.tree-container li:before {
+    content: none !important;
+    display: none !important;
+}
+
 /* Allgemeine Styles */
 .rex-display-inline {
     display: inline-block;
@@ -94,13 +127,99 @@
     border-color: #3a8ac9;
 }
 
+/* Modal-Fixes - Verhindert Scrollen nach oben - ENHANCED */
+.modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+.modal.fade .modal-dialog {
+    transform: translate(0, 0) !important;
+    transition: none !important;
+}
+
+.modal.fade.in .modal-dialog,
+.modal.show .modal-dialog {
+    transform: translate(0, 0) !important;
+    transition: none !important;
+}
+
+.modal-dialog {
+    margin: 30px auto !important;
+    position: relative !important;
+    width: 600px !important;
+    max-width: 90vw !important;
+    pointer-events: none !important;
+}
+
+.modal-content {
+    pointer-events: auto !important;
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+/* Spezifische Größen für verschiedene Modal-Typen */
+.modal-dialog.modal-sm {
+    width: 400px !important;
+    max-width: 90vw !important;
+}
+
+.modal-dialog.modal-lg {
+    width: 800px !important;
+    max-width: 95vw !important;
+}
+
+/* Create Category Modal spezifisch */
+#create-category-modal .modal-dialog {
+    width: 500px !important;
+    max-width: 90vw !important;
+}
+
+/* Body-Scroll komplett beibehalten */
+body.modal-open {
+    overflow: visible !important;
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+    position: static !important;
+}
+
+body.modal-open-custom {
+    overflow: visible !important;
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+    position: static !important;
+}
+
+/* HTML und Body Scroll-Verhalten erzwingen */
+html.modal-open,
+html body.modal-open {
+    overflow: visible !important;
+    height: auto !important;
+    position: static !important;
+}
+
+/* Modal backdrop anpassen */
+.modal-backdrop.in {
+    opacity: 0.5;
+}
+
+/* Modal positioning fix */
+.modal {
+    overflow-y: auto;
+}
+
+.modal-dialog {
+    margin: 30px auto;
+}
+
 /* Akkordeon-Optimierungen für große Listen */
 .panel-group {
     max-height: none; /* Entferne Höhenbeschränkungen für bessere Performance */
-}
-
-.panel-collapse {
-    /* Lazy-Loading Vorbereitung */
 }
 
 .panel-collapse.collapse:not(.in) {

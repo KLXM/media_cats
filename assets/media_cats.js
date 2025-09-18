@@ -143,3 +143,74 @@ function filterCategories(searchTerm) {
         $status.text(statusText);
     }
 }
+
+// Modal-Scroll-Fix - verhindert dass die Seite nach oben springt - ENHANCED
+var originalScrollPosition = 0;
+
+$(document).on('show.bs.modal', '.modal', function(e) {
+    // Aktuelle Scroll-Position merken
+    originalScrollPosition = $(window).scrollTop();
+    
+    // Bootstrap's eigenes Scroll-Verhalten verhindern
+    $('html, body').css({
+        'overflow': 'visible',
+        'position': 'static',
+        'height': 'auto',
+        'padding-right': '0',
+        'margin-right': '0'
+    });
+    
+    console.log('Modal opening, saved scroll position:', originalScrollPosition);
+});
+
+$(document).on('shown.bs.modal', '.modal', function(e) {
+    // Scroll-Position wiederherstellen falls sie sich geändert hat
+    var currentScroll = $(window).scrollTop();
+    if (Math.abs(currentScroll - originalScrollPosition) > 5) {
+        $(window).scrollTop(originalScrollPosition);
+        console.log('Modal opened, restored scroll position from', currentScroll, 'to', originalScrollPosition);
+    }
+    
+    // Sicherstellen dass Body-Styles korrekt sind
+    $('html, body').css({
+        'overflow': 'visible',
+        'position': 'static'
+    });
+});
+
+$(document).on('hide.bs.modal', '.modal', function(e) {
+    // Scroll-Position vor dem Schließen nochmal merken
+    originalScrollPosition = $(window).scrollTop();
+    console.log('Modal hiding, current scroll position:', originalScrollPosition);
+});
+
+$(document).on('hidden.bs.modal', '.modal', function(e) {
+    // Nach Modal-Schließung Scroll-Position wiederherstellen
+    $(window).scrollTop(originalScrollPosition);
+    
+    // Body-Styles zurücksetzen
+    $('html, body').css({
+        'overflow': '',
+        'position': '',
+        'height': '',
+        'padding-right': '',
+        'margin-right': ''
+    });
+    
+    console.log('Modal closed, restored scroll position to:', originalScrollPosition);
+});
+
+// Backup: Direkte Event-Handler für das Create-Category Modal
+$(document).on('click', '[data-target="#create-category-modal"], [href="#create-category-modal"]', function(e) {
+    originalScrollPosition = $(window).scrollTop();
+    console.log('Create category modal trigger clicked, saved position:', originalScrollPosition);
+});
+
+// Alternative: Modal-Events ohne Scroll-Reset - DEAKTIVIERT weil redundant
+// $(document).on('show.bs.modal', '.modal', function(e) {
+//     $('body').addClass('modal-open-custom');
+// });
+
+// $(document).on('hidden.bs.modal', '.modal', function(e) {
+//     $('body').removeClass('modal-open-custom');
+// });

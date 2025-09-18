@@ -6,7 +6,12 @@ if (rex::isBackend() && rex::getUser()) {
         // CSS einbinden
         rex_view::addCssFile(rex_url::addonAssets('media_cats', 'media_cats.css'));
         
-        // JavaScript einbinden
-        rex_view::addJsFile(rex_url::addonAssets('media_cats', 'media_cats.js'));
+        // JavaScript einbinden - Tree Browser für categories Seite
+        if (rex_be_controller::getCurrentPagePart(2) == 'categories') {
+            rex_view::addJsFile(rex_url::addonAssets('media_cats', 'media_cats_tree.js'));
+        } else {
+            // Legacy JavaScript für andere Seiten
+            rex_view::addJsFile(rex_url::addonAssets('media_cats', 'media_cats.js'));
+        }
     }
 }

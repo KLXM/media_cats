@@ -23,7 +23,7 @@ if ($errorMessage) {
     echo rex_view::error($errorMessage);
 }
 
-// Performance-Hinweis und Info-Bereich
+// Performance-Hinweis und Backup-Bereich
 $infoBody = '';
 if ($totalCategories > 100) {
     $infoBody .= '<div class="alert alert-info">';
@@ -32,23 +32,19 @@ if ($totalCategories > 100) {
     $infoBody .= '</div>';
 }
 
-// Info-Bereich mit automatischen Backups
+// Manuelles Backup erstellen
 $infoBody .= '<div class="row">';
 $infoBody .= '<div class="col-md-6">';
-$infoBody .= '<h4><i class="fa fa-shield"></i> Backup-System</h4>';
-$infoBody .= '<div class="alert alert-success">';
-$infoBody .= '<strong><i class="fa fa-check-circle"></i> Automatische Backups aktiv:</strong><br>';
-$infoBody .= 'Das System erstellt automatisch Backups vor jeder Änderung an den Kategorien. ';
-$infoBody .= 'Diese werden im AddOn-Datenverzeichnis gespeichert und können bei Bedarf wiederhergestellt werden.';
-$infoBody .= '</div>';
+$infoBody .= '<h4>Backup erstellen</h4>';
+$infoBody .= '<p>Vor größeren Änderungen empfiehlt sich ein Backup:</p>';
+$infoBody .= '<button class="btn btn-primary" id="create-backup-btn">Backup jetzt erstellen</button>';
 $infoBody .= '</div>';
 
 $infoBody .= '<div class="col-md-6">';
-$infoBody .= '<h4><i class="fa fa-bar-chart"></i> Statistiken</h4>';
-$infoBody .= '<ul class="list-unstyled">';
-$infoBody .= '<li><i class="fa fa-folder-o"></i> Kategorien gesamt: <strong>' . $totalCategories . '</strong></li>';
-$infoBody .= '<li><i class="fa fa-cogs"></i> Modus: <strong>' . ($totalCategories > 100 ? 'Performance (AJAX)' : 'Standard') . '</strong></li>';
-$infoBody .= '<li><i class="fa fa-shield"></i> Backup-System: <strong class="text-success">Aktiv</strong></li>';
+$infoBody .= '<h4>Statistiken</h4>';
+$infoBody .= '<ul>';
+$infoBody .= '<li>Kategorien gesamt: <strong>' . $totalCategories . '</strong></li>';
+$infoBody .= '<li>Modus: <strong>' . ($totalCategories > 100 ? 'Performance (AJAX)' : 'Standard') . '</strong></li>';
 $infoBody .= '</ul>';
 $infoBody .= '</div>';
 $infoBody .= '</div>';
@@ -110,17 +106,13 @@ $treeBody .= '
                     
                     <div class="form-group">
                         <label for="edit-parent-category">Elternkategorie:</label>
-                        <select id="edit-parent-category" name="parent_id" class="form-control selectpicker" 
-                                data-live-search="true" 
-                                data-size="8"
-                                data-style="btn-default"
-                                data-none-selected-text="Kategorie wählen..."
-                                data-live-search-placeholder="Kategorie suchen..."
-                                data-actions-box="true"
-                                title="Elternkategorie auswählen...">
+                        <select id="edit-parent-category" name="parent_id" class="form-control">
                             <option value="0">--- Keine Elternkategorie ---</option>
                         </select>
-                        <small class="help-block">Verwenden Sie die Suche um schnell die gewünschte Kategorie zu finden.</small>
+                        <div class="parent-search-container" style="margin-top: 10px;">
+                            <input type="text" id="parent-search" class="form-control" placeholder="Elternkategorie suchen...">
+                            <div class="parent-search-results" style="display:none;"></div>
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -142,28 +134,23 @@ $fragment->setVar('title', 'Kategorie-Browser', false);
 $fragment->setVar('body', $treeBody, false);
 echo $fragment->parse('core/page/section.php');
 
+// CSRF Token und AJAX URL für JavaScript bereitstellen
+// CSS und JS werden bereits in boot.php geladen
 ?>
 <script type="text/javascript">
 $(document).ready(function() {
-    // Debug-Information
-    console.log('Current URL:', window.location.href);
-    
     // Globale Konfiguration für MediaCatsTreeBrowser
     window.MediaCatsConfig = {
         ajaxUrl: '<?php echo rex_url::currentBackendPage(['page' => 'media_cats/ajax']); ?>',
         csrfToken: '<?php echo $csrfToken->getValue(); ?>'
     };
     
-    console.log('Config AJAX URL:', window.MediaCatsConfig.ajaxUrl);
-    console.log('Config CSRF Token:', window.MediaCatsConfig.csrfToken);
-    
     // Tree Browser initialisieren
     if (typeof MediaCatsTreeBrowser !== 'undefined') {
-        console.log('Initializing MediaCatsTreeBrowser...');
         var mediaCatsTree = new MediaCatsTreeBrowser();
         mediaCatsTree.init();
     } else {
-        console.error('MediaCatsTreeBrowser class not found - check if media_cats_tree.js is loaded');
+        console.error('MediaCatsTreeBrowser class not found');
     }
 });
 </script>
